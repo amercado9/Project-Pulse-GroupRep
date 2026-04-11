@@ -1,0 +1,27 @@
+# ── Frontend ─────────────────────────────────────────────────────────────────
+src/frontend/node_modules/
+src/frontend/dist/
+src/frontend/.env.local
+src/frontend/.env.*.local
+
+# ── Backend ───────────────────────────────────────────────────────────────────
+src/backend/target/
+src/backend/.mvn/wrapper/maven-wrapper.jar
+!src/backend/.mvn/wrapper/maven-wrapper.properties
+
+# ── IDE & OS ──────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+Thumbs.db
+
+# ── Secrets / Env ─────────────────────────────────────────────────────────────
+.env
+.env.production
+*.key
+*.pem
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/

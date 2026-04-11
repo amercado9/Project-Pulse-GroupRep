@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none">
+  <!-- Pulse icon -->
+  <polyline
+    points="4,24 14,24 18,10 24,38 30,16 36,30 42,24 52,24"
+    stroke="#60b4ff"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <!-- Text: Project -->
+  <text x="62" y="20" font-family="Inter, Segoe UI, sans-serif" font-size="11" font-weight="500" fill="rgba(255,255,255,0.7)" letter-spacing="0.5">PROJECT</text>
+  <!-- Text: Pulse -->
+  <text x="62" y="38" font-family="Inter, Segoe UI, sans-serif" font-size="17" font-weight="700" fill="#ffffff" letter-spacing="-0.3">Pulse</text>
+</svg>

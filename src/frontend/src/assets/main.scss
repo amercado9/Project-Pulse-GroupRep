@@ -1,0 +1,35 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f0f2f5;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+/* Page container used by all feature pages */
+.page-container {
+  border-radius: 8px;
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+/* fade-slide transition */
+.fade-slide-leave-active,
+.fade-slide-enter-active {
+  transition: all 0.25s ease;
+}
+
+.fade-slide-enter-from {
+  transform: translateX(-20px);
+  opacity: 0;
+}
+
+.fade-slide-leave-to {
+  transform: translateX(20px);
+  opacity: 0;
+}
