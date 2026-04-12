@@ -18,4 +18,9 @@ public class SectionService {
                 ? null : criteria.sectionName().trim();
         return sectionRepository.searchByCriteria(criteria.sectionId(), name, pageable);
     }
+
+    public Section findById(Long id) {
+        return sectionRepository.findById(id)
+                .orElseThrow(() -> new SectionNotFoundException(id));
+    }
 }

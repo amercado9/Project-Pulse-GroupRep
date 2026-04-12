@@ -121,7 +121,7 @@ const breadcrumbItems = computed(() =>
     .map((r, i, arr) => ({
       title: r.meta.title as string,
       icon: r.meta.icon as string,
-      to: { name: r.name },
+      to: { name: r.name, params: route.params },
       disabled: i === arr.length - 1
     }))
 )

@@ -39,4 +39,13 @@ public class SectionController {
         );
         return Result.success("Sections retrieved.", data);
     }
+
+    /**
+     * UC-3: Admin views a senior design section.
+     * GET /api/v1/sections/{id}
+     */
+    @GetMapping("/{id}")
+    public Result<Section> findById(@PathVariable Long id) {
+        return Result.success(sectionService.findById(id));
+    }
 }
