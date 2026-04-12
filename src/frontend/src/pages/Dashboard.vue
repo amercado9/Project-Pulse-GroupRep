@@ -24,7 +24,9 @@
   <TopNavigationBar />
 
   <v-main class="main-content">
-    <RouterView />
+    <div class="page-wrapper">
+      <RouterView />
+    </div>
   </v-main>
 
   <v-footer app height="40" color="white" border="t" class="app-footer">
@@ -99,7 +101,11 @@ const appVersion = __APP_VERSION__
 
 .main-content {
   background-color: #f0f2f5;
+}
+
+.page-wrapper {
   padding: 20px;
+  min-height: 100%;
 }
 
 .app-footer {
