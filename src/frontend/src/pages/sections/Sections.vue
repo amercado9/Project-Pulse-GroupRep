@@ -46,20 +46,23 @@
         @update:page="onPageChange"
         @update:items-per-page="onSizeChange"
       >
-        <!-- Status chip -->
         <template #item.isActive="{ item }">
           <v-chip :color="item.isActive ? 'success' : 'default'" size="small" variant="tonal">
             {{ item.isActive ? 'Active' : 'Inactive' }}
           </v-chip>
         </template>
 
-        <!-- Date columns -->
         <template #item.startDate="{ item }">{{ item.startDate ?? '—' }}</template>
         <template #item.endDate="{ item }">{{ item.endDate ?? '—' }}</template>
 
-        <!-- Actions -->
         <template #item.actions="{ item }">
-          <v-btn icon="mdi-eye" size="small" variant="text" color="primary" @click="viewSection(item)" />
+          <v-btn
+            icon="mdi-eye"
+            size="small"
+            variant="text"
+            color="primary"
+            @click="viewSection(item)"
+          />
           <v-btn
             v-if="userInfoStore.isAdmin"
             icon="mdi-pencil"
@@ -70,7 +73,6 @@
           />
         </template>
 
-        <!-- Empty state -->
         <template #no-data>
           <div class="text-center py-8 text-medium-emphasis">
             <v-icon icon="mdi-school-outline" size="48" class="mb-3" />
@@ -79,61 +81,18 @@
         </template>
       </v-data-table-server>
     </v-card-text>
-
-    <!-- View dialog -->
-    <v-dialog v-model="viewDialog" max-width="560">
-      <v-card v-if="selectedSection" rounded="lg">
-        <v-card-title class="pa-4 d-flex align-center justify-space-between">
-          <span>Section Details</span>
-          <v-btn icon="mdi-close" variant="text" @click="viewDialog = false" />
-        </v-card-title>
-        <v-divider />
-        <v-card-text class="pt-4">
-          <v-row dense>
-            <v-col cols="6">
-              <div class="text-caption text-medium-emphasis">Section Name</div>
-              <div class="text-body-1 font-weight-medium">{{ selectedSection.sectionName }}</div>
-            </v-col>
-            <v-col cols="6">
-              <div class="text-caption text-medium-emphasis">Status</div>
-              <v-chip :color="selectedSection.isActive ? 'success' : 'default'" size="small" variant="tonal" class="mt-1">
-                {{ selectedSection.isActive ? 'Active' : 'Inactive' }}
-              </v-chip>
-            </v-col>
-            <v-col cols="6" class="mt-2">
-              <div class="text-caption text-medium-emphasis">Start Date</div>
-              <div>{{ selectedSection.startDate ?? '—' }}</div>
-            </v-col>
-            <v-col cols="6" class="mt-2">
-              <div class="text-caption text-medium-emphasis">End Date</div>
-              <div>{{ selectedSection.endDate ?? '—' }}</div>
-            </v-col>
-            <v-col cols="6" class="mt-2">
-              <div class="text-caption text-medium-emphasis">WAR Due Day</div>
-              <div>{{ selectedSection.warWeeklyDueDay }} @ {{ selectedSection.warDueTime }}</div>
-            </v-col>
-            <v-col cols="6" class="mt-2">
-              <div class="text-caption text-medium-emphasis">Peer Eval Due Day</div>
-              <div>{{ selectedSection.peerEvaluationWeeklyDueDay }} @ {{ selectedSection.peerEvaluationDueTime }}</div>
-            </v-col>
-          </v-row>
-        </v-card-text>
-        <v-card-actions class="pa-4 pt-0">
-          <v-spacer />
-          <v-btn color="primary" variant="tonal" @click="viewDialog = false">Close</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-card>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { searchSections } from '@/apis/section'
 import type { Section } from '@/apis/section/types'
 import { useUserInfoStore } from '@/stores/userInfo'
 import { useNotifyStore } from '@/stores/notify'
 
+const router = useRouter()
 const userInfoStore = useUserInfoStore()
 const notifyStore = useNotifyStore()
 
@@ -142,9 +101,6 @@ const loading = ref(false)
 const sections = ref<Section[]>([])
 const totalElements = ref(0)
 const pagination = ref({ page: 0, size: 10 })
-
-const viewDialog = ref(false)
-const selectedSection = ref<Section | null>(null)
 
 const headers = [
   { title: 'Section Name', key: 'sectionName', sortable: false },
@@ -193,8 +149,7 @@ function onSizeChange(newSize: number) {
 }
 
 function viewSection(section: Section) {
-  selectedSection.value = section
-  viewDialog.value = true
+  router.push({ name: 'section-detail', params: { sectionId: section.sectionId } })
 }
 
 function editSection(section: Section) {

@@ -123,6 +123,18 @@ export const routes = [
           requiresPermissions: ['instructor']
         }
       },
+      {
+        path: '/sections/:sectionId',
+        component: () => import('@/pages/sections/SectionDetail.vue'),
+        name: 'section-detail',
+        meta: {
+          title: 'Section Detail',
+          icon: 'mdi-school',
+          isMenuItem: false,
+          requiresAuth: true,
+          requiresPermissions: ['instructor']
+        }
+      },
 
       // ── Admin/Instructor: Team Management (UC-7 to UC-14) ────────────────
       {
