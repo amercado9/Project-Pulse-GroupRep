@@ -9,7 +9,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
   mail:
     host: localhost
     port: 1025
@@ -17,6 +17,11 @@ spring:
 
 front-end:
   url: http://localhost:5173
+
+security:
+  jwt:
+    secret-key: "projectpulse-dev-secret-key-2026"
+    token-expiry-in-hours: 24
 
 app:
   timezone: America/Chicago

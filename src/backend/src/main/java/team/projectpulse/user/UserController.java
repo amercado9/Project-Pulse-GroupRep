@@ -1,14 +1,50 @@
 package team.projectpulse.user;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import team.projectpulse.common.Result;
+import team.projectpulse.security.JwtUtils;
 
-/**
- * Handles user authentication and account management endpoints.
- * Supports login, password reset, and registration flows.
- */
+import jakarta.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Map;
+
 @RestController
 @RequestMapping("${api.endpoint.base-url}/users")
 public class UserController {
-    // TODO: Implement login, register, forget-password, reset-password
+
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtils jwtUtils;
+
+    public UserController(AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
+        this.authenticationManager = authenticationManager;
+        this.jwtUtils = jwtUtils;
+    }
+
+    @PostMapping("/login")
+    public Result<Map<String, Object>> login(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Basic ")) {
+            return Result.error(401, "Missing credentials");
+        }
+
+        String decoded = new String(Base64.getDecoder().decode(header.substring(6)), StandardCharsets.UTF_8);
+        int colon = decoded.indexOf(':');
+        if (colon < 1) {
+            return Result.error(401, "Invalid credentials format");
+        }
+        String username = decoded.substring(0, colon);
+        String password = decoded.substring(colon + 1);
+
+        Authentication auth = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(username, password)
+        );
+
+        User user = (User) auth.getPrincipal();
+        String token = jwtUtils.generateToken(user);
+        return Result.success("Login successful.", Map.of("token", token, "userInfo", user));
+    }
 }
