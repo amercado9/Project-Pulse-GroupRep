@@ -130,9 +130,21 @@
         <!-- Active Weeks -->
         <v-col cols="12" md="6">
           <v-card rounded="lg">
-            <v-card-title class="d-flex align-center gap-2 pb-2">
-              <v-icon icon="mdi-calendar-check" color="success" size="20" />
-              Active Weeks
+            <v-card-title class="d-flex align-center justify-space-between pb-2">
+              <div class="d-flex align-center gap-2">
+                <v-icon icon="mdi-calendar-check" color="success" size="20" />
+                Active Weeks
+              </div>
+              <v-btn
+                v-if="userInfoStore.isAdmin"
+                size="small"
+                color="primary"
+                variant="tonal"
+                prepend-icon="mdi-pencil"
+                @click="openWeeksDialog"
+              >
+                Set Up
+              </v-btn>
             </v-card-title>
             <v-divider />
             <v-card-text>
@@ -180,13 +192,78 @@
       Section not found or failed to load.
     </v-alert>
   </div>
+
+  <!-- UC-6: Set Up Active Weeks Dialog -->
+  <v-dialog v-model="weeksDialog" max-width="640" persistent scrollable>
+    <v-card rounded="lg">
+      <v-card-title class="pa-4 d-flex align-center gap-2">
+        <v-icon icon="mdi-calendar-check" color="success" />
+        Set Up Active Weeks
+      </v-card-title>
+      <v-divider />
+
+      <v-card-text style="max-height: 480px;">
+        <div v-if="loadingWeeks" class="d-flex justify-center py-8">
+          <v-progress-circular indeterminate color="primary" />
+        </div>
+        <div v-else-if="!allWeeks.length" class="text-medium-emphasis text-body-2 py-4 text-center">
+          No weeks available. Ensure the section has start and end dates configured.
+        </div>
+        <v-table v-else density="compact">
+          <thead>
+            <tr>
+              <th style="width:40px">
+                <v-checkbox
+                  :model-value="allSelected"
+                  :indeterminate="someSelected && !allSelected"
+                  hide-details
+                  density="compact"
+                  @update:model-value="toggleAll"
+                />
+              </th>
+              <th>Week</th>
+              <th>Monday</th>
+              <th>Sunday</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="week in allWeeks" :key="week.weekNumber">
+              <td>
+                <v-checkbox
+                  :model-value="selectedWeeks.has(week.weekNumber)"
+                  hide-details
+                  density="compact"
+                  @update:model-value="toggleWeek(week.weekNumber)"
+                />
+              </td>
+              <td class="font-weight-medium">Week {{ week.weekNumber }}</td>
+              <td class="text-medium-emphasis">{{ week.monday }}</td>
+              <td class="text-medium-emphasis">{{ week.sunday }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-card-text>
+
+      <v-divider />
+      <v-card-actions class="pa-4">
+        <span class="text-caption text-medium-emphasis">
+          {{ selectedWeeks.size }} of {{ allWeeks.length }} weeks selected
+        </span>
+        <v-spacer />
+        <v-btn variant="text" @click="weeksDialog = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" :loading="savingWeeks" @click="saveWeeks">
+          Save
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { findSectionById } from '@/apis/section'
-import type { Section } from '@/apis/section/types'
+import { findSectionById, getSectionWeeks, setUpActiveWeeks } from '@/apis/section'
+import type { Section, WeekInfo } from '@/apis/section/types'
 import { useUserInfoStore } from '@/stores/userInfo'
 import { useNotifyStore } from '@/stores/notify'
 
@@ -196,6 +273,16 @@ const notifyStore = useNotifyStore()
 
 const section = ref<Section | null>(null)
 const loading = ref(false)
+
+// UC-6: active weeks dialog state
+const weeksDialog = ref(false)
+const loadingWeeks = ref(false)
+const savingWeeks = ref(false)
+const allWeeks = ref<WeekInfo[]>([])
+const selectedWeeks = ref(new Set<string>())
+
+const allSelected = computed(() => allWeeks.value.length > 0 && selectedWeeks.value.size === allWeeks.value.length)
+const someSelected = computed(() => selectedWeeks.value.size > 0)
 
 async function loadSection() {
   loading.value = true
@@ -207,6 +294,53 @@ async function loadSection() {
     // handled by request interceptor
   } finally {
     loading.value = false
+  }
+}
+
+async function openWeeksDialog() {
+  weeksDialog.value = true
+  loadingWeeks.value = true
+  try {
+    const id = Number(route.params.sectionId)
+    const res = await getSectionWeeks(id)
+    allWeeks.value = res.data
+    selectedWeeks.value = new Set(res.data.filter(w => w.isActive).map(w => w.weekNumber))
+  } catch {
+    // handled by request interceptor
+  } finally {
+    loadingWeeks.value = false
+  }
+}
+
+function toggleWeek(weekNumber: string) {
+  if (selectedWeeks.value.has(weekNumber)) {
+    selectedWeeks.value.delete(weekNumber)
+  } else {
+    selectedWeeks.value.add(weekNumber)
+  }
+  selectedWeeks.value = new Set(selectedWeeks.value)
+}
+
+function toggleAll(val: boolean | null) {
+  if (val) {
+    selectedWeeks.value = new Set(allWeeks.value.map(w => w.weekNumber))
+  } else {
+    selectedWeeks.value = new Set()
+  }
+}
+
+async function saveWeeks() {
+  savingWeeks.value = true
+  try {
+    const id = Number(route.params.sectionId)
+    await setUpActiveWeeks(id, Array.from(selectedWeeks.value))
+    notifyStore.success('Active weeks saved.')
+    weeksDialog.value = false
+    await loadSection()
+  } catch {
+    // handled by request interceptor
+  } finally {
+    savingWeeks.value = false
   }
 }
 

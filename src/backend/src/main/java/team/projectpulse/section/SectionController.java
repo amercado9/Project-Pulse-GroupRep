@@ -7,6 +7,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 import team.projectpulse.common.Result;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -47,5 +48,24 @@ public class SectionController {
     @GetMapping("/{id}")
     public Result<Section> findById(@PathVariable Long id) {
         return Result.success(sectionService.findById(id));
+    }
+
+    /**
+     * UC-6: Get all computed weeks for a section (Monday–Sunday ranges).
+     * GET /api/v1/sections/{id}/weeks
+     */
+    @GetMapping("/{id}/weeks")
+    public Result<List<SectionWeekInfo>> getWeeks(@PathVariable Long id) {
+        return Result.success(sectionService.getWeeks(id));
+    }
+
+    /**
+     * UC-6: Save the admin's chosen active weeks for a section.
+     * POST /api/v1/sections/{id}/weeks
+     */
+    @PostMapping("/{id}/weeks")
+    public Result<Void> setUpActiveWeeks(@PathVariable Long id, @RequestBody List<String> activeWeeks) {
+        sectionService.setUpActiveWeeks(id, activeWeeks);
+        return Result.success("Active weeks updated.", null);
     }
 }
