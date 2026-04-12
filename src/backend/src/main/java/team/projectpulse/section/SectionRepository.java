@@ -8,6 +8,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface SectionRepository extends JpaRepository<Section, Long> {
 
+    boolean existsBySectionNameIgnoreCase(String sectionName);
+
     @Query("""
             SELECT s FROM Section s
             WHERE (:sectionId IS NULL OR s.sectionId = :sectionId)
