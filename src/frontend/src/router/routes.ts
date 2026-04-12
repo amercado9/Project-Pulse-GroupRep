@@ -108,7 +108,7 @@ export const routes = [
           icon: 'mdi-office-building',
           isMenuItem: true,
           requiresAuth: true,
-          requiresPermissions: ['instructor']
+          requiresPermissions: ['admin', 'instructor']
         }
       },
       {
@@ -120,7 +120,7 @@ export const routes = [
           icon: 'mdi-school',
           isMenuItem: true,
           requiresAuth: true,
-          requiresPermissions: ['instructor']
+          requiresPermissions: ['admin', 'instructor']
         }
       },
       {
@@ -132,7 +132,7 @@ export const routes = [
           icon: 'mdi-school',
           isMenuItem: false,
           requiresAuth: true,
-          requiresPermissions: ['instructor']
+          requiresPermissions: ['admin', 'instructor']
         }
       },
 
@@ -160,7 +160,7 @@ export const routes = [
           icon: 'mdi-account',
           isMenuItem: true,
           requiresAuth: true,
-          requiresPermissions: ['instructor']
+          requiresPermissions: ['admin', 'instructor']
         }
       },
       {
@@ -172,7 +172,7 @@ export const routes = [
           icon: 'mdi-view-dashboard',
           isMenuItem: false,
           requiresAuth: true,
-          requiresPermissions: ['instructor']
+          requiresPermissions: ['admin', 'instructor']
         }
       },
 
@@ -200,7 +200,7 @@ export const routes = [
           icon: 'mdi-clipboard-list',
           isMenuItem: true,
           requiresAuth: true,
-          requiresPermissions: ['instructor']
+          requiresPermissions: ['admin', 'instructor']
         }
       },
       {
@@ -212,7 +212,7 @@ export const routes = [
           icon: 'mdi-chart-box',
           isMenuItem: true,
           requiresAuth: true,
-          requiresPermissions: ['instructor']
+          requiresPermissions: ['admin', 'instructor']
         }
       },
 
