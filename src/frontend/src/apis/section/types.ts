@@ -23,6 +23,7 @@ export interface FindSectionByIdResponse { flag: boolean; code: number; message:
 export interface CreateSectionResponse { flag: boolean; code: number; message: string; data: Section }
 export interface UpdateSectionResponse { flag: boolean; code: number; message: string; data: Section }
 export interface AssignRubricToSectionResponse { flag: boolean; code: number; message: string }
+export interface GetSectionWeeksResponse { flag: boolean; code: number; message: string; data: WeekInfo[] }
 export interface SetUpActiveWeeksResponse { flag: boolean; code: number; message: string }
 export interface SendEmailInvitationsResponse { flag: boolean; code: number; message: string }
 export interface InviteOrAddInstructorsResponse {

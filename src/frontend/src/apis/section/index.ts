@@ -2,8 +2,8 @@ import request from '@/utils/request'
 import type {
   PaginationParams, Section, SectionSearchCriteria,
   CreateSectionResponse, FindSectionByIdResponse, SearchSectionByCriteriaResponse,
-  UpdateSectionResponse, AssignRubricToSectionResponse, SetUpActiveWeeksResponse,
-  SendEmailInvitationsResponse, InviteOrAddInstructorsResponse,
+  UpdateSectionResponse, AssignRubricToSectionResponse, GetSectionWeeksResponse,
+  SetUpActiveWeeksResponse, SendEmailInvitationsResponse, InviteOrAddInstructorsResponse,
   GetInstructorsResponse, RemoveInstructorResponse
 } from './types'
 
@@ -16,6 +16,8 @@ export const createSection = (section: Section) => request.post<any, CreateSecti
 export const updateSection = (section: Section) => request.put<any, UpdateSectionResponse>(`${API.SECTIONS}/${section.sectionId}`, section)
 export const assignRubricToSection = (sectionId: number, rubricId: number) =>
   request.put<any, AssignRubricToSectionResponse>(`${API.SECTIONS}/${sectionId}/rubrics/${rubricId}`)
+export const getSectionWeeks = (sectionId: number) =>
+  request.get<any, GetSectionWeeksResponse>(`${API.SECTIONS}/${sectionId}/weeks`)
 export const setUpActiveWeeks = (sectionId: number, activeWeeks: string[]) =>
   request.post<any, SetUpActiveWeeksResponse>(`${API.SECTIONS}/${sectionId}/weeks`, activeWeeks)
 export const sendEmailInvitationsToStudents = (courseId: number, sectionId: number, emails: string[]) =>
