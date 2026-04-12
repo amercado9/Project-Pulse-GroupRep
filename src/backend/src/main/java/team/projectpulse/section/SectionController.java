@@ -51,6 +51,15 @@ public class SectionController {
     }
 
     /**
+     * UC-4: Admin creates a new senior design section.
+     * POST /api/v1/sections
+     */
+    @PostMapping
+    public Result<Section> createSection(@RequestBody Section section) {
+        return Result.success("Section created.", sectionService.createSection(section));
+    }
+
+    /**
      * UC-6: Get all computed weeks for a section (Monday–Sunday ranges).
      * GET /api/v1/sections/{id}/weeks
      */

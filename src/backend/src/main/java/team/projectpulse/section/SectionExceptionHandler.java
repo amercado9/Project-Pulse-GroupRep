@@ -14,4 +14,10 @@ public class SectionExceptionHandler {
     Result<Void> handleNotFound(SectionNotFoundException ex) {
         return Result.notFound(ex.getMessage());
     }
+
+    @ExceptionHandler(SectionAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    Result<Void> handleAlreadyExists(SectionAlreadyExistsException ex) {
+        return Result.conflict(ex.getMessage());
+    }
 }

@@ -34,6 +34,21 @@ public class SectionService {
     }
 
     /**
+     * UC-4: Create a new senior design section.
+     * Rejects if a section with the same name already exists.
+     */
+    @Transactional
+    public Section createSection(Section section) {
+        if (sectionRepository.existsBySectionNameIgnoreCase(section.getSectionName().trim())) {
+            throw new SectionAlreadyExistsException(section.getSectionName().trim());
+        }
+        section.setSectionId(null);
+        section.setSectionName(section.getSectionName().trim());
+        if (section.getActiveWeeks() == null) section.setActiveWeeks(List.of());
+        return sectionRepository.save(section);
+    }
+
+    /**
      * UC-6: Compute all Monday–Sunday weeks between section start/end dates,
      * marking each as active if its week number appears in section.activeWeeks.
      */

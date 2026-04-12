@@ -17,4 +17,8 @@ public record Result<T>(boolean flag, int code, String message, T data) {
     public static <T> Result<T> notFound(String message) {
         return new Result<>(false, 404, message, null);
     }
+
+    public static <T> Result<T> conflict(String message) {
+        return new Result<>(false, 409, message, null);
+    }
 }
