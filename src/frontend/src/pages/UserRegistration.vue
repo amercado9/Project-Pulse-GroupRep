@@ -71,6 +71,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNotifyStore } from '@/stores/notify'
+import { registerUser } from '@/apis/user'
 
 const route = useRoute()
 const router = useRouter()
@@ -90,7 +91,13 @@ const formData = ref({
 
 onMounted(() => {
   const email = route.query.email as string
+  // Extension 2a: if already registered, redirect to login
+  const alreadyRegistered = route.query.registered as string
   if (email) formData.value.email = email
+  if (alreadyRegistered === 'true') {
+    notifyStore.info('You already have an account. Please log in.')
+    router.push({ name: 'login' })
+  }
 })
 
 async function register() {
@@ -98,11 +105,21 @@ async function register() {
   if (!valid) return
   submitting.value = true
   try {
-    // UC-25 / UC-30: registration API call goes here
+    await registerUser({
+      firstName: formData.value.firstName,
+      lastName: formData.value.lastName,
+      email: formData.value.email,
+      password: formData.value.password
+    })
     notifyStore.success('Account created! Please log in.')
     router.push({ name: 'login' })
-  } catch {
-    // handled by interceptor
+  } catch (err: any) {
+    // Extension 2a: email already registered (409)
+    if (err?.response?.status === 409) {
+      notifyStore.warning('An account with this email already exists. Redirecting to login.')
+      router.push({ name: 'login' })
+    }
+    // other errors handled by interceptor
   } finally {
     submitting.value = false
   }

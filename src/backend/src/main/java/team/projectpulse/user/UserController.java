@@ -18,10 +18,12 @@ public class UserController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
+    private final UserService userService;
 
-    public UserController(AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
+    public UserController(AuthenticationManager authenticationManager, JwtUtils jwtUtils, UserService userService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
+        this.userService = userService;
     }
 
     @PostMapping("/login")
@@ -46,5 +48,15 @@ public class UserController {
         User user = (User) auth.getPrincipal();
         String token = jwtUtils.generateToken(user);
         return Result.success("Login successful.", Map.of("token", token, "userInfo", user));
+    }
+
+    /**
+     * UC-25: Student sets up a student account via the invitation link.
+     * POST /api/v1/users/register
+     */
+    @PostMapping("/register")
+    public Result<Void> register(@RequestBody RegisterRequest request) {
+        userService.registerStudent(request);
+        return Result.success("Account created. Please log in.", null);
     }
 }
