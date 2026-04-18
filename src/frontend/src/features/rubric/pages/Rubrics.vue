@@ -203,12 +203,13 @@ function validate(): boolean {
   }
 
   form.value.criteria.forEach((c, i) => {
+    const err = criterionErrors.value[i]!
     if (!c.criterion.trim()) {
-      criterionErrors.value[i].criterion = 'Criterion name is required.'
+      err.criterion = 'Criterion name is required.'
       valid = false
     }
     if (!c.maxScore || c.maxScore <= 0) {
-      criterionErrors.value[i].maxScore = 'Max score must be a positive number.'
+      err.maxScore = 'Max score must be a positive number.'
       valid = false
     }
   })
