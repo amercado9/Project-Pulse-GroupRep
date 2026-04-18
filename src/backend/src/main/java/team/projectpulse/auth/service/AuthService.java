@@ -23,13 +23,14 @@ public class AuthService {
     }
 
     public User register(RegisterRequest req, String role) {
-        if (userRepository.existsByEmailIgnoreCase(req.email().trim())) {
-            throw new UserAlreadyExistsException(req.email().trim());
+        String email = req.email().trim().toLowerCase();
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new UserAlreadyExistsException(email);
         }
         User user = new User();
         user.setFirstName(req.firstName().trim());
         user.setLastName(req.lastName().trim());
-        user.setEmail(req.email().trim().toLowerCase());
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setRoles(role);
         user.setEnabled(true);
