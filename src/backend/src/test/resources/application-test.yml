@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:tc:mysql:8.0:///testdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.MySQLDialect
+  flyway:
+    enabled: false
+
+api:
+  endpoint:
+    base-url: /api/v1
+
+jwt:
+  secret-key: test-secret-key-for-testing-only-32chars!!
+  expiration: 3600000
