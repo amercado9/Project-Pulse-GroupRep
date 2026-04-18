@@ -41,6 +41,14 @@ export const routes = [
         meta: { title: 'Home', icon: 'mdi-home', isMenuItem: true, requiresAuth: true }
       },
 
+      // ── Rubrics ──────────────────────────────────────────────────────────
+      {
+        path: '/rubrics',
+        component: () => import('@/features/rubric/pages/Rubrics.vue'),
+        name: 'rubrics',
+        meta: { title: 'Rubrics', icon: 'mdi-clipboard-list', isMenuItem: true, requiresAuth: true, roles: ['admin'] }
+      },
+
       // ── Current User Profile ─────────────────────────────────────────────
       {
         path: '/user',
