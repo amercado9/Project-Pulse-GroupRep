@@ -1,20 +1,18 @@
-import type { Instructor } from '@/apis/instructor/types'
-import type { Student } from '@/apis/student/types'
+import type { UserInfo } from '@/features/auth/services/authTypes'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useUserInfoStore = defineStore(
   'userInfo',
   () => {
-    const userInfo = ref<Student | Instructor | null>(null)
+    const userInfo = ref<UserInfo | null>(null)
 
-    const setUserInfo = (newUserInfo: Student | Instructor) => { userInfo.value = newUserInfo }
+    const setUserInfo = (newUserInfo: UserInfo) => { userInfo.value = newUserInfo }
     const removeUserInfo = () => { userInfo.value = null }
 
     const roleList = computed<string[]>(() => {
       if (!userInfo.value) return []
-      const raw = (userInfo.value as any).roles as string
-      return raw.split(/\s+/).map((r) => r.toLowerCase()).filter(Boolean)
+      return userInfo.value.roles.split(/\s+/).map((r) => r.toLowerCase()).filter(Boolean)
     })
 
     const hasRole = (role: string) => roleList.value.includes(role.toLowerCase())
