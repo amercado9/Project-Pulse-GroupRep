@@ -1,13 +1,14 @@
 import request from '@/shared/utils/request'
+import type { ApiResponse } from '@/shared/types/api'
 import type { CreateRubricRequest, Rubric } from './rubricTypes'
 
 const BASE = '/rubrics'
 
 export const createRubric = (payload: CreateRubricRequest) =>
-  request.post<Rubric>(BASE, payload)
+  request.post<ApiResponse<Rubric>>(BASE, payload)
 
 export const getAllRubrics = () =>
-  request.get<Rubric[]>(BASE)
+  request.get<ApiResponse<Rubric[]>>(BASE)
 
 export const getRubricById = (id: number) =>
-  request.get<Rubric>(`${BASE}/${id}`)
+  request.get<ApiResponse<Rubric>>(`${BASE}/${id}`)

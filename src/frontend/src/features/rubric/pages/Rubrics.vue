@@ -165,8 +165,8 @@ onMounted(loadRubrics)
 
 async function loadRubrics() {
   try {
-    const res = await getAllRubrics()
-    if (res.data.flag) rubrics.value = res.data.data ?? []
+    const res = await getAllRubrics() as any
+    if (res.flag) rubrics.value = res.data ?? []
   } catch {
     // leave list empty
   }
@@ -223,13 +223,13 @@ function goToPreview() {
 async function confirmCreate() {
   saving.value = true
   try {
-    const res = await createRubric(form.value)
-    if (res.data.flag) {
-      rubrics.value.push(res.data.data!)
+    const res = await createRubric(form.value) as any
+    if (res.flag) {
+      rubrics.value.push(res.data)
       snackbar.value = { show: true, message: 'Rubric created successfully.', color: 'success' }
       dialog.value = false
     } else {
-      snackbar.value = { show: true, message: res.data.message, color: 'error' }
+      snackbar.value = { show: true, message: res.message, color: 'error' }
       step.value = 1
     }
   } catch {
