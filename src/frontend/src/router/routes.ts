@@ -41,6 +41,14 @@ export const routes = [
         meta: { title: 'Home', icon: 'mdi-home', isMenuItem: true, requiresAuth: true }
       },
 
+      // ── Sections ─────────────────────────────────────────────────────────
+      {
+        path: '/sections',
+        component: () => import('@/features/section/pages/Sections.vue'),
+        name: 'sections',
+        meta: { title: 'Sections', icon: 'mdi-school', isMenuItem: true, requiresAuth: true, roles: ['admin'] }
+      },
+
       // ── Rubrics ──────────────────────────────────────────────────────────
       {
         path: '/rubrics',

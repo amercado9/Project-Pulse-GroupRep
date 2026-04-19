@@ -1,0 +1,15 @@
+package team.projectpulse.section.controller;
+
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import team.projectpulse.section.domain.SectionNotFoundException;
+import team.projectpulse.system.Result;
+
+@RestControllerAdvice
+public class SectionExceptionHandler {
+
+    @ExceptionHandler(SectionNotFoundException.class)
+    public Result<Void> handleNotFound(SectionNotFoundException ex) {
+        return Result.notFound(ex.getMessage());
+    }
+}
