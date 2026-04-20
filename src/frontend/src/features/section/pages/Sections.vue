@@ -45,7 +45,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="section in sections" :key="section.sectionId">
+            <tr
+              v-for="section in sections"
+              :key="section.sectionId"
+              class="cursor-pointer"
+              @click="router.push({ name: 'section-detail', params: { id: section.sectionId } })"
+            >
               <td>{{ section.sectionName }}</td>
               <td>
                 <span v-if="section.teamNames.length === 0" class="text-medium-emphasis">—</span>
@@ -67,8 +72,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { findSections } from '../services/sectionService'
 import type { SectionSummary } from '../services/sectionTypes'
+
+const router = useRouter()
 
 const searchName = ref('')
 const sections = ref<SectionSummary[]>([])
