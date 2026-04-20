@@ -370,22 +370,25 @@ Table of Contents
 
 # **Use Case 11: The Admin invites students to join a senior design section** {#use-case-11:-the-admin-invites-students-to-join-a-senior-design-section}
 
+> **[REVISED — See "Changed Use Cases" at the end of this document]**
+> Email sending removed. The System generates a unique invite link; the Admin sends it manually.
+
 | UC ID and Name: | UC-11: Invite students to join a senior design section |  |  |
 | ----: | :---- | ----: | :---- |
 | Created By: |  | Date Created: |  |
 | Primary Actor: | Admin | Secondary Actors: | Student |
 | Trigger: | The Admin indicates to invite students to join a senior design section. |  |  |
-| Description: | The Admin wants to send invitation emails to students, so that they can join a senior design section. |  |  |
-| Preconditions: | PRE-1. The Admin is logged into the System. |  |  |
-| Postconditions: | POST-1. Invitation emails are sent to all the students. |  |  |
-| Main Success Scenario: | The Admin indicates to invite students to join a senior design section. The System asks the Admin to provide students’ emails. See the Associated Information section for format. The Admin provides student emails and confirms that she has finished. The System validates the Admin’s inputs according to the emails format defined in the Associated Information of this use case. The System displays the number of emails. The System displays the email message. See the Associated Information section for the default message. The Admin either confirms to send the invitation (continues the normal flow) or chooses to modify the details (return to step 3). The System sends out an email to each email address. Use case ends. |  |  |
-| Extensions: | **4a. Input validation rule violation:** 4a1. The System alerts the Admin that an input validation rule is violated and displays the nature and location of the error. 4a2. The Admin corrects the mistake and returns to step 4 of the normal flow. **6a. The Admin indicates to personalize the default email message:** 6a1. The Admin customizes the email content and confirms the message. 6a2. Returns to step 6 of the normal flow. |  |  |
+| Description: | The Admin wants to generate invite links for students so that they can join a senior design section. The Admin sends the links manually (e.g. via email or Teams). No email service is required. |  |  |
+| Preconditions: | PRE-1. The Admin is logged into the System. PRE-2. The section exists. |  |  |
+| Postconditions: | POST-1. A unique invite link is generated for each student email. POST-2. The Admin copies and sends the links manually. |  |  |
+| Main Success Scenario: | The Admin indicates to invite students to join a senior design section. The System asks the Admin to provide students’ emails. The Admin provides student emails and confirms that she has finished. The System validates the Admin’s inputs. The System generates a unique invite link for each email address and displays all links to the Admin. The Admin copies each link and sends it to the corresponding student manually. Use case ends. |  |  |
+| Extensions: | **4a. Input validation rule violation:** 4a1. The System alerts the Admin that an input validation rule is violated and displays the nature and location of the error. 4a2. The Admin corrects the mistake and returns to step 4 of the normal flow. **5a. An invite link already exists for an email:** 5a1. The System replaces the previous link with a new one and resets the expiry. |  |  |
 | Priority: | High |  |  |
 | Frequency of Use: | 1 user, 1 usage per year. |  |  |
-| Business Rules: |  |  |  |
-| Associated Information: | Email format: emails shall be separated by semicolon and the System shall ignore spaces in between. E.g., Good: john.doe@tcu.edu; f.smith@tcu.edu; tim.johnson@tcu.edu; lily.p.lee@tcu.edu Good: john.doe@tcu.edu;f.smith@tcu.edu Bad: john.doe@tcu.edu; f.smith@tcu.edu; Bad: john.doe@tcu.edu f.smith@tcu.edu Default email message: *Subject: Welcome to The Peer Evaluation Tool \- Complete Your Registration Hello, \[Name of the Admin\] has invited you to join The Peer Evaluation Tool. To complete your registration, please use the link below: \[Registration link\] If you have any questions or need assistance, feel free to contact \[Admin’s email\] or our team directly. Please note: This email is not monitored, so do not reply directly to this message. Best regards, Peer Evaluation Tool Team*  The invitation link shall be unique for each student. The Admin shall be able to cancel the use case at any time prior to submitting it. |  |  |
-| Related Use Cases | The student needs to UC-25: Set up a student account after receiving the invitation email. |  |  |
-| Assumptions: |  |  |  |
+| Business Rules: | Each invite link expires after 7 days. Each link is single-use — it becomes invalid once the student completes registration. |  |  |
+| Associated Information: | Email format: emails shall be separated by semicolons; the System shall ignore spaces in between. The invite link format: `<base-url>/join?token=<unique-token>`. The token is unique per email+section combination. The Admin shall be able to cancel the use case at any time prior to submitting it. |  |  |
+| Related Use Cases | The student uses the invite link to UC-25: Set up a student account. |  |  |
+| Assumptions: | The Admin has a way to contact students outside the system (email client, Teams, etc.). |  |  |
 | Open Issues: |  |  |  |
 
 # 
@@ -546,26 +549,27 @@ Table of Contents
 
 ---
 
-> **[REVISED VERSION]**
+> **[REVISED VERSION — See "Changed Use Cases" at the end of this document]**
+> Automatic email sending removed. System generates a unique invite link; Admin sends it manually.
 
-# **Use Case 18 (Revised): The Admin creates an instructor account** {#use-case-18-revised}
+# **Use Case 18 (Revised): The Admin invites an instructor to register an account** {#use-case-18-revised}
 
-| UC ID and Name: | UC-18: Admin creates an instructor account |  |  |
+| UC ID and Name: | UC-18: Invite an instructor to register an account |  |  |
 | ----: | :---- | ----: | :---- |
 | Created By: |  | Date Created: |  |
 | Primary Actor: | Admin | Secondary Actors: | Instructor |
-| Trigger: | The Admin indicates to create an instructor account. |  |  |
-| Description: | The Admin wants to create an instructor account directly, so that the instructor can log in and supervise senior design projects. No email invite is required. |  |  |
+| Trigger: | The Admin indicates to invite an instructor to register an account. |  |  |
+| Description: | The Admin wants to generate an invite link for an instructor so that the instructor can register and supervise senior design projects. The Admin sends the link manually. No email service is required. |  |  |
 | Preconditions: | PRE-1. The Admin is logged into the System. |  |  |
-| Postconditions: | POST-1. The instructor account is created. POST-2. The Admin shares credentials with the instructor manually. |  |  |
-| Main Success Scenario: | The Admin indicates to create an instructor account. The System asks the Admin to provide the instructor's details. The Admin fills in the details and confirms. The System validates the inputs. The System creates the instructor account. The System confirms the account was created. Use case ends. |  |  |
-| Extensions: | **4a. Email already in use:** 4a1. The System alerts the Admin that an account with this email already exists. 4a2. The Admin corrects the email and returns to step 3. **4b. Input validation rule violation:** 4b1. The System alerts the Admin of the error. 4b2. The Admin corrects the mistake and returns to step 3. |  |  |
+| Postconditions: | POST-1. A unique invite link is generated for the instructor's email. POST-2. The Admin copies and sends the link manually. |  |  |
+| Main Success Scenario: | The Admin indicates to invite an instructor. The System asks the Admin to provide the instructor's email. The Admin enters the email and confirms. The System validates the email format. The System generates a unique invite link for that email and displays it to the Admin. The Admin copies the link and sends it to the instructor manually (e.g. via email or Teams). Use case ends. |  |  |
+| Extensions: | **4a. Input validation rule violation:** 4a1. The System alerts the Admin that the email is invalid. 4a2. The Admin corrects the email and returns to step 3. **5a. An invite link already exists for this email:** 5a1. The System replaces the previous link with a new one and resets the expiry. |  |  |
 | Priority: | High |  |  |
 | Frequency of Use: | 1 user, approximately 1 usage per year. |  |  |
-| Business Rules: |  |  |  |
-| Associated Information: | Details: First name, Last name, Email, Temporary password. The Admin shares the temporary password with the instructor manually. The Admin shall be able to cancel the use case at any time prior to submitting it. |  |  |
-| Related Use Cases | The instructor uses UC-26 to change their temporary password after first login. UC-30 removed — no longer needed. |  |  |
-| Assumptions: |  |  |  |
+| Business Rules: | The invite link expires after 7 days and is single-use. |  |  |
+| Associated Information: | The invite link format: `<base-url>/instructor-register?token=<unique-token>`. The Admin shall be able to cancel the use case at any time prior to submitting it. |  |  |
+| Related Use Cases | The instructor uses the invite link to UC-30: Set up an instructor account. |  |  |
+| Assumptions: | The Admin has a way to contact the instructor outside the system. |  |  |
 | Open Issues: |  |  |  |
 
 # 
@@ -814,24 +818,27 @@ Table of Contents
 
 # 
 
-# **Use Case 30: The Instructor sets up an instructor account** {#use-case-30:-the-instructor-sets-up-an-instructor-account}
+> **[REVISED — Reinstated. See “Changed Use Cases” at the end of this document]**
+> UC-30 was previously removed. It is restored to support the revised UC-18 invite link flow.
+
+# **Use Case 30 (Revised): The Instructor sets up an instructor account** {#use-case-30:-the-instructor-sets-up-an-instructor-account}
 
 | UC ID and Name: | UC-30: Set up an instructor account |  |  |
 | ----: | :---- | ----: | :---- |
 | Created By: |  | Date Created: |  |
 | Primary Actor: | Instructor | Secondary Actors: |  |
-| Trigger: | The Instructor clicks the registration link in the invitation email. |  |  |
-| Description: | The Instructor wants to set up an account, so that she can supervise senior design projects in a senior design section. |  |  |
-| Preconditions: | PRE-1. An invitation email is sent to the Instructor. |  |  |
-| Postconditions: | POST-1. The Instructor account is set up. |  |  |
-| Main Success Scenario: | The Instructor clicks the registration link in the invitation email. The System opens a new page and asks the Instructor to enter the details of this new account according to the “Details” defined in the Associated Information of this use case. The Instructor enters the details of this new account and confirms that she has finished. The System validates the Instructor’s inputs according to the “Details” defined in the Associated Information of this use case. The System displays the details of the new account and asks the Instructor to confirm the registration. The Instructor either confirms the registration (continues the normal flow) or chooses to modify the details (return to step 3). The System saves the information about the new account and informs the Instructor that this account has been created. The System redirects the Instructor to the login page. Use case ends. |  |  |
-| Extensions: | **2a. The Instructor has already set up the account:** 2a1. The System alerts the Instructor that she has already set up her account and shall log in. 2a2. The System redirects the Instructor to the login page. 2a3. Use case ends. **4a. Input validation rule violation:** 4a1. The System alerts the Instructor that an input validation rule is violated and displays the nature and location of the error. 4a2. The Instructor corrects the mistake and returns to step 4 of the normal flow. |  |  |
+| Trigger: | The Instructor clicks the invite link sent by the Admin. |  |  |
+| Description: | The Instructor wants to set up an account using the invite link provided by the Admin, so that she can supervise senior design projects. No email is sent by the System — the Admin sends the link manually. |  |  |
+| Preconditions: | PRE-1. The Admin has generated an invite link via UC-18 and sent it to the Instructor manually. PRE-2. The invite link has not expired and has not been used. |  |  |
+| Postconditions: | POST-1. The Instructor account is set up. POST-2. The invite link is marked as used. |  |  |
+| Main Success Scenario: | The Instructor clicks the invite link. The System validates the token (not expired, not used). The System opens a registration page pre-filled with the Instructor’s email. The System asks the Instructor to enter account details according to the “Details” in the Associated Information. The Instructor enters the details and confirms. The System validates the inputs. The System displays the details and asks the Instructor to confirm. The Instructor confirms. The System saves the account with the `instructor` role, marks the token as used, and informs the Instructor that the account has been created. The System redirects the Instructor to the login page. Use case ends. |  |  |
+| Extensions: | **2a. Token is expired or already used:** 2a1. The System alerts the Instructor that the link is invalid or expired and asks her to contact the Admin for a new link. 2a2. Use case ends. **2b. Instructor already has an account with this email:** 2b1. The System alerts the Instructor that an account already exists and redirects to the login page. 2b2. Use case ends. **6a. Input validation rule violation:** 6a1. The System alerts the Instructor of the error. 6a2. The Instructor corrects the mistake and returns to step 5. |  |  |
 | Priority: | High |  |  |
-| Frequency of Use: | Approximately 2 users, average of 1 usage per year. |  |  |
-| Business Rules: |  |  |  |
-| Associated Information: | Details: First name Middle initial Last name Password Reenter password: must be the same as password. The Instructor shall be able to cancel the use case at any time prior to submitting it. |  |  |
-| Related Use Cases |  |  |  |
-| Assumptions: |  |  |  |
+| Frequency of Use: | Approximately 2 users, 1 usage per year. |  |  |
+| Business Rules: | The invite token expires after 7 days and is single-use. |  |  |
+| Associated Information: | Details: First name, Last name, Password, Confirm password (must match). Email is pre-filled from the token and is read-only. The Instructor shall be able to cancel at any time prior to submitting. |  |  |
+| Related Use Cases | Triggered by UC-18. The Instructor uses UC-26 to edit account details after setup. |  |  |
+| Assumptions: | The Instructor received the link from the Admin outside the system. |  |  |
 | Open Issues: |  |  |  |
 
 # 
@@ -933,3 +940,50 @@ BR-2: For the fall semester, the active weeks are usually from the 5th week to t
 BR-3: Peer evaluation cannot be edited once completed. (TODO)  
 BR-4: A student can only submit a peer evaluation for the previous week. A student has one week to complete a peer evaluation for the previous week. If a student fails to complete a peer evaluation, she cannot make it up.  
 BR-5: For the peer evaluation, a student can only see her rubric criterion scores, public comments, and the overall grade.  
+
+---
+
+# **Changed Use Cases** {#changed-use-cases}
+
+This section documents use cases that were modified or removed from the original requirements, along with the rationale.
+
+---
+
+## UC-11 (Revised): Invite students to join a senior design section
+
+**Change:** Removed automatic email sending. The System now generates a unique invite link per student; the Admin sends the link manually (e.g. via email client or Teams).
+
+**Reason:** Automatic email delivery requires a paid third-party email service (e.g. SendGrid) and SMTP configuration. For a 1-usage-per-year use case, this cost and complexity is not justified. The simplified approach achieves the same outcome — students receive a unique, expiring link to register — without any email infrastructure.
+
+**What changed in the flow:**
+- Step 6 (System sends email) → replaced with: System displays generated invite links to the Admin
+- Admin copies and sends links manually
+- Invite links expire after 7 days and are single-use
+
+**Impact on UC-25:** The student still clicks a link to register. The link now comes from the Admin manually rather than from the System automatically. No change to UC-25 flow.
+
+---
+
+## UC-18 (Revised): Admin generates instructor invite link
+
+**Change:** Original UC-18 sent an automated email to the instructor. First revision had the Admin create the account directly. Final revision: System generates a unique invite link tied to the instructor's email; Admin sends it manually.
+
+**Reason:** Automated email requires a paid SMTP/email service (e.g. SendGrid), which is unnecessary for a 1-usage-per-year action. The invite link approach keeps security (token expiry, single-use) without any email infrastructure. Aligns with the same pattern used in UC-11 for students.
+
+**What changed:**
+- System no longer sends emails or creates accounts on the Admin's behalf
+- Admin enters instructor email → System returns a unique invite link
+- Admin copies and sends the link manually (email client, Teams, etc.)
+- Link expires after 7 days and is single-use
+
+---
+
+## UC-30 (Reinstated — Revised): Instructor sets up account via invite link
+
+**Change:** UC-30 was previously removed when UC-18 was simplified to direct account creation. It is now reinstated to support the revised UC-18 invite link flow.
+
+**What changed from original UC-30:**
+- Trigger is now the Admin's manually sent invite link (not an automated email)
+- Email is pre-filled from the token (read-only on the registration page)
+- Token validation step added (expired/used token → error message)
+- Instructor role assigned automatically on registration
