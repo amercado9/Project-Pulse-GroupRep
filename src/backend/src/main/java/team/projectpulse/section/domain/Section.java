@@ -23,6 +23,9 @@ public class Section {
     @Column(name = "end_date")
     private LocalDate endDate;
 
+    @Column(name = "rubric_id")
+    private Long rubricId;
+
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
@@ -54,6 +57,9 @@ public class Section {
 
     public LocalDate getEndDate()                           { return endDate; }
     public void setEndDate(LocalDate v)                     { this.endDate = v; }
+
+    public Long getRubricId()                               { return rubricId; }
+    public void setRubricId(Long v)                         { this.rubricId = v; }
 
     public boolean isActive()                               { return active; }
     public void setActive(boolean v)                        { this.active = v; }
