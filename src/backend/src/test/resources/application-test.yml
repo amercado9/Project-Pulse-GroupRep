@@ -13,6 +13,7 @@ api:
   endpoint:
     base-url: /api/v1
 
-jwt:
-  secret-key: test-secret-key-for-testing-only-32chars!!
-  expiration: 3600000
+security:
+  jwt:
+    secret-key: test-secret-key-for-testing-only-32chars!!
+    token-expiry-in-hours: 1

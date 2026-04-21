@@ -37,8 +37,8 @@ function isLoggedIn(): boolean {
 
 function checkPermissions(to: RouteLocationNormalized): boolean {
   const userPermissions = useUserInfoStore().roleList
-  if (!to.meta.requiresPermissions) return true
-  const required = to.meta.requiresPermissions as string[]
+  if (!to.meta.roles) return true
+  const required = to.meta.roles as string[]
   return required.some((p) => userPermissions.includes(p.toLowerCase()))
 }
 
