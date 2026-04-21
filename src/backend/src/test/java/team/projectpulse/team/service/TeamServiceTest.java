@@ -7,15 +7,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import team.projectpulse.section.domain.Section;
 import team.projectpulse.team.domain.Team;
+import team.projectpulse.team.domain.TeamNotFoundException;
+import team.projectpulse.team.dto.TeamDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.repository.TeamRepository;
 import team.projectpulse.user.domain.User;
 
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +70,44 @@ class TeamServiceTest {
 
         assertNull(summary.teamDescription());
         assertNull(summary.teamWebsiteUrl());
+    }
+
+    @Test
+    void should_ReturnTeamDetail_When_TeamExists() {
+        Team team = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(team));
+
+        TeamDetail detail = teamService.findTeamDetail(10L);
+
+        assertEquals(10L, detail.teamId());
+        assertEquals(2L, detail.sectionId());
+        assertEquals("Spring 2026 - Section A", detail.sectionName());
+        assertEquals("Pulse Analytics", detail.teamName());
+        assertEquals("Analytics dashboard", detail.teamDescription());
+        assertEquals("https://pulse.example.com", detail.teamWebsiteUrl());
+        assertEquals(List.of("Amy Adams", "Zoe Zeta"), detail.teamMemberNames());
+        assertEquals(List.of("Ivy Stone", "Noah Bennett"), detail.instructorNames());
+        verify(teamRepository).findDetailById(10L);
+    }
+
+    @Test
+    void should_SortTeamMembersAndInstructorsAlphabetically_When_BuildingDetail() {
+        Team team = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(team));
+
+        TeamDetail detail = teamService.findTeamDetail(10L);
+
+        assertEquals(List.of("Amy Adams", "Zoe Zeta"), detail.teamMemberNames());
+        assertEquals(List.of("Ivy Stone", "Noah Bennett"), detail.instructorNames());
+    }
+
+    @Test
+    void should_ThrowNotFoundException_When_TeamDetailIdDoesNotExist() {
+        when(teamRepository.findDetailById(999L)).thenReturn(Optional.empty());
+
+        TeamNotFoundException ex = assertThrows(TeamNotFoundException.class, () -> teamService.findTeamDetail(999L));
+
+        assertEquals("No team found with id: 999", ex.getMessage());
     }
 
     private Team buildTeam() {

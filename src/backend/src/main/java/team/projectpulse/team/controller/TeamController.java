@@ -2,10 +2,12 @@ package team.projectpulse.team.controller;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import team.projectpulse.system.Result;
+import team.projectpulse.team.dto.TeamDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.service.TeamService;
 
@@ -30,5 +32,11 @@ public class TeamController {
         @RequestParam(required = false) String instructor
     ) {
         return Result.success(teamService.findTeams(sectionId, sectionName, teamName, instructor));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    public Result<TeamDetail> getTeam(@PathVariable Long id) {
+        return Result.success(teamService.findTeamDetail(id));
     }
 }

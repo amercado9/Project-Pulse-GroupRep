@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import team.projectpulse.team.domain.Team;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TeamRepository extends JpaRepository<Team, Long> {
 
@@ -31,4 +32,13 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
         @Param("teamName") String teamName,
         @Param("instructor") String instructor
     );
+
+    @Query("""
+        select distinct t from Team t
+        join fetch t.section s
+        left join fetch t.students st
+        left join fetch t.instructors i
+        where t.teamId = :teamId
+        """)
+    Optional<Team> findDetailById(@Param("teamId") Long teamId);
 }

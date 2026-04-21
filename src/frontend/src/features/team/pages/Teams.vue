@@ -68,6 +68,7 @@
               <th>Website</th>
               <th>Team Members</th>
               <th>Instructors</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -111,6 +112,16 @@
                 </div>
                 <span v-else class="text-medium-emphasis">—</span>
               </td>
+              <td>
+                <v-btn
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  @click="viewTeam(team.teamId)"
+                >
+                  View
+                </v-btn>
+              </td>
             </tr>
           </tbody>
         </v-table>
@@ -121,9 +132,11 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { findTeams } from '../services/teamService'
 import type { FindTeamsParams, TeamSummary } from '../services/teamTypes'
 
+const router = useRouter()
 const teams = ref<TeamSummary[]>([])
 const loading = ref(false)
 const filters = ref<FindTeamsParams>({
@@ -154,6 +167,10 @@ async function search() {
 function clearFilters() {
   filters.value = { sectionName: '', teamName: '', instructor: '' }
   search()
+}
+
+function viewTeam(teamId: number) {
+  router.push({ name: 'team-detail', params: { id: teamId } })
 }
 </script>
 

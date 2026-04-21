@@ -2,11 +2,14 @@ package team.projectpulse.team.service;
 
 import org.springframework.stereotype.Service;
 import team.projectpulse.team.domain.Team;
+import team.projectpulse.team.domain.TeamNotFoundException;
+import team.projectpulse.team.dto.TeamDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.repository.TeamRepository;
 import team.projectpulse.user.domain.User;
 
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 @Service
 public class TeamService {
@@ -30,17 +33,14 @@ public class TeamService {
             .toList();
     }
 
+    public TeamDetail findTeamDetail(Long id) {
+        Team team = teamRepository.findDetailById(id)
+            .orElseThrow(() -> new TeamNotFoundException(id));
+
+        return toDetail(team);
+    }
+
     private TeamSummary toSummary(Team team) {
-        List<String> teamMemberNames = team.getStudents().stream()
-            .map(this::toDisplayName)
-            .sorted(String.CASE_INSENSITIVE_ORDER)
-            .toList();
-
-        List<String> instructorNames = team.getInstructors().stream()
-            .map(this::toDisplayName)
-            .sorted(String.CASE_INSENSITIVE_ORDER)
-            .toList();
-
         return new TeamSummary(
             team.getTeamId(),
             team.getSection().getSectionId(),
@@ -48,13 +48,33 @@ public class TeamService {
             team.getTeamName(),
             team.getTeamDescription(),
             team.getTeamWebsiteUrl(),
-            teamMemberNames,
-            instructorNames
+            toSortedNames(team.getStudents()),
+            toSortedNames(team.getInstructors())
+        );
+    }
+
+    private TeamDetail toDetail(Team team) {
+        return new TeamDetail(
+            team.getTeamId(),
+            team.getSection().getSectionId(),
+            team.getSection().getSectionName(),
+            team.getTeamName(),
+            team.getTeamDescription(),
+            team.getTeamWebsiteUrl(),
+            toSortedNames(team.getStudents()),
+            toSortedNames(team.getInstructors())
         );
     }
 
     private String toDisplayName(User user) {
         return (user.getFirstName() + " " + user.getLastName()).trim();
+    }
+
+    private List<String> toSortedNames(Iterable<User> users) {
+        return StreamSupport.stream(users.spliterator(), false)
+            .map(this::toDisplayName)
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .toList();
     }
 
     private String normalize(String value) {
