@@ -12,8 +12,10 @@ import team.projectpulse.user.domain.User;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -53,6 +55,29 @@ class TeamRepositoryIntegrationTest {
         assertEquals(List.of(), teams);
     }
 
+    @Test
+    void should_FetchSectionStudentsAndInstructors_When_FindingTeamDetailById() {
+        SeededData data = seedTeams();
+
+        Optional<Team> teamOptional = teamRepository.findDetailById(data.teamAlphaId());
+
+        assertTrue(teamOptional.isPresent());
+        Team team = teamOptional.get();
+        assertEquals("Pulse Analytics", team.getTeamName());
+        assertEquals("Spring 2026 - Section A", team.getSection().getSectionName());
+        assertEquals(List.of("Ava", "Liam"), team.getStudents().stream().map(User::getFirstName).sorted().toList());
+        assertEquals(List.of("Ivy"), team.getInstructors().stream().map(User::getFirstName).sorted().toList());
+    }
+
+    @Test
+    void should_ReturnEmpty_When_TeamIdDoesNotExist() {
+        seedTeams();
+
+        Optional<Team> team = teamRepository.findDetailById(99999L);
+
+        assertTrue(team.isEmpty());
+    }
+
     private SeededData seedTeams() {
         Section sectionA = new Section();
         sectionA.setSectionName("Spring 2026 - Section A");
@@ -81,7 +106,7 @@ class TeamRepositoryIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        return new SeededData("Review Board", "Pulse Analytics", "Gamma Studio");
+        return new SeededData("Review Board", "Pulse Analytics", "Gamma Studio", pulse.getTeamId());
     }
 
     private User persistUser(String firstName, String lastName, String email, String roles) {
@@ -108,5 +133,5 @@ class TeamRepositoryIntegrationTest {
         return team;
     }
 
-    private record SeededData(String teamBravo, String teamAlpha, String teamGamma) {}
+    private record SeededData(String teamBravo, String teamAlpha, String teamGamma, Long teamAlphaId) {}
 }

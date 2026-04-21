@@ -8,6 +8,8 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import team.projectpulse.team.domain.TeamNotFoundException;
+import team.projectpulse.team.dto.TeamDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.service.TeamService;
 
@@ -71,5 +73,79 @@ class TeamControllerIntegrationTest {
     void should_ReturnUnauthorized_When_RequestIsUnauthenticated() throws Exception {
         mockMvc.perform(get("/api/v1/teams"))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnTeamDetailWrappedInResult_When_AdminRequestsTeam() throws Exception {
+        when(teamService.findTeamDetail(1L))
+            .thenReturn(new TeamDetail(
+                1L,
+                1L,
+                "Spring 2026 - Section A",
+                "Pulse Analytics",
+                "desc",
+                "https://pulse.example.com",
+                List.of("Ava Johnson"),
+                List.of("Ivy Stone")
+            ));
+
+        mockMvc.perform(get("/api/v1/teams/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.code").value(200))
+            .andExpect(jsonPath("$.data.teamName").value("Pulse Analytics"))
+            .andExpect(jsonPath("$.data.sectionName").value("Spring 2026 - Section A"));
+
+        verify(teamService).findTeamDetail(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "INSTRUCTOR")
+    void should_AllowInstructor_When_RequestingTeamDetail() throws Exception {
+        when(teamService.findTeamDetail(2L))
+            .thenReturn(new TeamDetail(
+                2L,
+                1L,
+                "Spring 2026 - Section A",
+                "Review Board",
+                null,
+                null,
+                List.of(),
+                List.of()
+            ));
+
+        mockMvc.perform(get("/api/v1/teams/2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.teamId").value(2));
+
+        verify(teamService).findTeamDetail(2L);
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void should_ReturnForbidden_When_StudentRequestsTeamDetail() throws Exception {
+        mockMvc.perform(get("/api/v1/teams/1"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void should_ReturnUnauthorized_When_RequestIsUnauthenticated_ForTeamDetail() throws Exception {
+        mockMvc.perform(get("/api/v1/teams/1"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnNotFound_When_TeamDoesNotExist() throws Exception {
+        when(teamService.findTeamDetail(eq(999L))).thenThrow(new TeamNotFoundException(999L));
+
+        mockMvc.perform(get("/api/v1/teams/999"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(404))
+            .andExpect(jsonPath("$.message").value("No team found with id: 999"));
+
+        verify(teamService).findTeamDetail(999L);
     }
 }

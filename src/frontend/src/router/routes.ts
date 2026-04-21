@@ -62,6 +62,12 @@ export const routes = [
         name: 'teams',
         meta: { title: 'Teams', icon: 'mdi-account-group', isMenuItem: true, requiresAuth: true, roles: ['admin', 'instructor'] }
       },
+      {
+        path: '/teams/:id',
+        component: () => import('@/features/team/pages/TeamDetail.vue'),
+        name: 'team-detail',
+        meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
+      },
 
       // ── Rubrics ──────────────────────────────────────────────────────────
       {
