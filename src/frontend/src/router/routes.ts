@@ -61,6 +61,12 @@ export const routes = [
         name: 'section-detail',
         meta: { requiresAuth: true, roles: ['admin'] }
       },
+      {
+        path: '/sections/:id/invite',
+        component: () => import('@/features/section/pages/SectionInvite.vue'),
+        name: 'section-invite',
+        meta: { requiresAuth: true, roles: ['admin'] }
+      },
 
       // ── Teams ────────────────────────────────────────────────────────────
       {
