@@ -8,6 +8,7 @@ import team.projectpulse.section.domain.SectionAlreadyExistsException;
 import team.projectpulse.section.domain.SectionNotFoundException;
 import team.projectpulse.section.dto.CreateSectionRequest;
 import team.projectpulse.section.dto.SectionDetail;
+import team.projectpulse.section.dto.SetActiveWeeksRequest;
 import team.projectpulse.section.dto.UpdateSectionRequest;
 import team.projectpulse.section.dto.SectionSummary;
 import team.projectpulse.section.repository.SectionRepository;
@@ -65,6 +66,7 @@ public class SectionService {
                 rubricName,
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of()
         );
     }
@@ -101,6 +103,36 @@ public class SectionService {
                 saved.isActive(),
                 saved.getRubricId(),
                 rubricName,
+                saved.getActiveWeeks(),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+    }
+
+    public SectionDetail setupActiveWeeks(Long id, SetActiveWeeksRequest request) {
+        Section section = sectionRepository.findById(id)
+                .orElseThrow(() -> new SectionNotFoundException(id));
+
+        section.setActiveWeeks(request.activeWeeks());
+        Section saved = sectionRepository.save(section);
+
+        String rubricName = null;
+        if (saved.getRubricId() != null) {
+            rubricName = rubricRepository.findById(saved.getRubricId())
+                    .map(Rubric::getRubricName)
+                    .orElse(null);
+        }
+
+        return new SectionDetail(
+                saved.getSectionId(),
+                saved.getSectionName(),
+                saved.getStartDate(),
+                saved.getEndDate(),
+                saved.isActive(),
+                saved.getRubricId(),
+                rubricName,
+                saved.getActiveWeeks(),
                 List.of(),
                 List.of(),
                 List.of()
@@ -126,6 +158,7 @@ public class SectionService {
                 section.isActive(),
                 section.getRubricId(),
                 rubricName,
+                section.getActiveWeeks(),
                 List.of(),
                 List.of(),
                 List.of()

@@ -2,6 +2,9 @@ import request from '@/shared/utils/request'
 import type { ApiResponse } from '@/shared/types/api'
 import type { CreateSectionRequest, SectionDetail, SectionSummary, UpdateSectionRequest } from './sectionTypes'
 
+export const setupActiveWeeks = (id: number, activeWeeks: string[]) =>
+  request.put<ApiResponse<SectionDetail>>(`${BASE}/${id}/active-weeks`, { activeWeeks })
+
 const BASE = '/sections'
 
 export const createSection = (payload: CreateSectionRequest) =>
