@@ -93,6 +93,7 @@ public class AuthService {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setRoles("student");
+        user.setSection(sectionRepository.findById(invite.getSectionId()).orElse(null));
         user.setEnabled(true);
         userRepository.save(user);
 

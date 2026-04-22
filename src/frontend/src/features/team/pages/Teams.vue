@@ -3,7 +3,12 @@
     <v-row class="mb-4" align="center">
       <v-col><h2 class="text-h5 font-weight-bold">Senior Design Teams</h2></v-col>
       <v-col v-if="isAdmin" cols="auto">
-        <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">Create Team</v-btn>
+        <div class="header-actions">
+          <v-btn variant="outlined" prepend-icon="mdi-account-switch" @click="openAssignmentsPage">
+            Assign Students
+          </v-btn>
+          <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">Create Team</v-btn>
+        </div>
       </v-col>
     </v-row>
 
@@ -300,6 +305,10 @@ function viewTeam(teamId: number) {
   router.push({ name: 'team-detail', params: { id: teamId } })
 }
 
+function openAssignmentsPage() {
+  router.push({ name: 'team-student-assignments' })
+}
+
 async function openCreateDialog() {
   form.value = emptyForm()
   errors.value = {}
@@ -394,5 +403,10 @@ function isValidAbsoluteHttpUrl(value: string) {
 <style scoped lang="scss">
 .chip-group {
   min-width: 180px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
 }
 </style>

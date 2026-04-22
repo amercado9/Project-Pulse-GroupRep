@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import team.projectpulse.section.domain.Section;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +34,10 @@ public class User implements UserDetails {
     /** Space-separated roles, e.g. "admin instructor" or "student" */
     @Column(nullable = false)
     private String roles;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "section_id")
+    private Section section;
 
     private boolean enabled;
 
@@ -88,6 +93,9 @@ public class User implements UserDetails {
 
     public String getRoles()                 { return roles; }
     public void setRoles(String v)           { this.roles = v; }
+
+    public Section getSection()              { return section; }
+    public void setSection(Section v)        { this.section = v; }
 
     public void setEnabled(boolean v)        { this.enabled = v; }
 }

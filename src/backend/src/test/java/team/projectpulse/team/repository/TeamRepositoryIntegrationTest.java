@@ -123,6 +123,17 @@ class TeamRepositoryIntegrationTest {
         assertEquals(false, exists);
     }
 
+    @Test
+    void should_FetchAllTeamsBySectionWithStudentsOrderedByTeamName() {
+        SeededData data = seedTeams();
+
+        List<Team> teams = teamRepository.findAllBySectionIdWithStudentsOrdered(data.sectionAId());
+
+        assertEquals(List.of("Pulse Analytics", "Review Board"), teams.stream().map(Team::getTeamName).toList());
+        assertEquals(List.of("Ava", "Liam"), teams.getFirst().getStudents().stream().map(User::getFirstName).sorted().toList());
+        assertEquals(List.of("Mia"), teams.get(1).getStudents().stream().map(User::getFirstName).toList());
+    }
+
     private SeededData seedTeams() {
         Section sectionA = new Section();
         sectionA.setSectionName("Spring 2026 - Section A");
@@ -151,7 +162,7 @@ class TeamRepositoryIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        return new SeededData("Review Board", "Pulse Analytics", "Gamma Studio", pulse.getTeamId(), review.getTeamId());
+        return new SeededData(sectionA.getSectionId(), "Review Board", "Pulse Analytics", "Gamma Studio", pulse.getTeamId(), review.getTeamId());
     }
 
     private User persistUser(String firstName, String lastName, String email, String roles) {
@@ -178,5 +189,5 @@ class TeamRepositoryIntegrationTest {
         return team;
     }
 
-    private record SeededData(String teamBravo, String teamAlpha, String teamGamma, Long pulseAnalyticsId, Long reviewBoardId) {}
+    private record SeededData(Long sectionAId, String teamBravo, String teamAlpha, String teamGamma, Long pulseAnalyticsId, Long reviewBoardId) {}
 }
