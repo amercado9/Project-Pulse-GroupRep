@@ -398,8 +398,9 @@ async function loadSections() {
     const res = await findSections() as any
     sections.value = res.flag ? (res.data ?? []) : []
 
-    if (sections.value.length === 1) {
-      selectedSectionId.value = sections.value[0].sectionId
+    const onlySection = sections.value[0]
+    if (sections.value.length === 1 && onlySection) {
+      selectedSectionId.value = onlySection.sectionId
       await loadWorkspace()
     }
   } catch {
@@ -474,17 +475,22 @@ function assignSelectedStudents() {
 
   const teamIndex = stagedTeams.value.findIndex((team) => team.teamId === selectedTeamId.value)
   if (teamIndex >= 0) {
+    const currentTeam = stagedTeams.value[teamIndex]
+    if (!currentTeam) {
+      return
+    }
+
     const mergedStudents = [
-      ...stagedTeams.value[teamIndex].assignedStudents,
+      ...currentTeam.assignedStudents,
       ...selectedStudents.filter((student) =>
-        !stagedTeams.value[teamIndex].assignedStudents.some(
+        !currentTeam.assignedStudents.some(
           (assignedStudent) => assignedStudent.studentId === student.studentId
         )
       )
     ].sort(compareStudents)
 
     stagedTeams.value[teamIndex] = {
-      ...stagedTeams.value[teamIndex],
+      ...currentTeam,
       assignedStudents: mergedStudents
     }
   }
