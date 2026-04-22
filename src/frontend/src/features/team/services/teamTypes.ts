@@ -27,6 +27,12 @@ export interface CreateTeamRequest {
   teamWebsiteUrl: string | null
 }
 
+export interface UpdateTeamRequest {
+  teamName: string
+  teamDescription: string | null
+  teamWebsiteUrl: string | null
+}
+
 export interface FindTeamsParams {
   sectionId?: number
   sectionName?: string
