@@ -1,3 +1,10 @@
+export interface CreateSectionRequest {
+  sectionName: string
+  startDate: string | null
+  endDate: string | null
+  rubricId: number | null
+}
+
 export interface SectionSummary {
   sectionId: number
   sectionName: string

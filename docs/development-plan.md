@@ -28,10 +28,10 @@ Modules: `auth`, `section`, `rubric`
 
 | UC | Description | Status |
 |----|-------------|--------|
-| UC-1 | Create a rubric | Not started |
-| UC-2 | Find senior design sections | Not started |
-| UC-3 | View a senior design section | Not started |
-| UC-4 | Create a senior design section | Not started |
+| UC-1 | Create a rubric | Done |
+| UC-2 | Find senior design sections | Done |
+| UC-3 | View a senior design section | Done |
+| UC-4 | Create a senior design section | Done |
 | UC-5 | Edit a senior design section | Not started |
 | UC-6 | Set up active weeks for a section | Not started |
 | UC-25 | Student sets up a student account | Not started |
