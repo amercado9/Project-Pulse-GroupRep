@@ -20,6 +20,13 @@ export interface TeamDetail {
   instructorNames: string[]
 }
 
+export interface CreateTeamRequest {
+  sectionId: number
+  teamName: string
+  teamDescription: string | null
+  teamWebsiteUrl: string | null
+}
+
 export interface FindTeamsParams {
   sectionId?: number
   sectionName?: string

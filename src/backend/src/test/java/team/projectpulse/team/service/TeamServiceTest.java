@@ -6,8 +6,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import team.projectpulse.section.domain.Section;
+import team.projectpulse.section.domain.SectionNotFoundException;
+import team.projectpulse.section.repository.SectionRepository;
+import team.projectpulse.team.domain.InvalidTeamException;
 import team.projectpulse.team.domain.Team;
+import team.projectpulse.team.domain.TeamAlreadyExistsException;
 import team.projectpulse.team.domain.TeamNotFoundException;
+import team.projectpulse.team.dto.CreateTeamRequest;
 import team.projectpulse.team.dto.TeamDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.repository.TeamRepository;
@@ -28,6 +33,9 @@ class TeamServiceTest {
 
     @Mock
     private TeamRepository teamRepository;
+
+    @Mock
+    private SectionRepository sectionRepository;
 
     @InjectMocks
     private TeamService teamService;
@@ -110,10 +118,126 @@ class TeamServiceTest {
         assertEquals("No team found with id: 999", ex.getMessage());
     }
 
+    @Test
+    void should_CreateTeam_When_RequestIsValid() {
+        Section section = buildSection();
+        Team savedTeam = new Team();
+        savedTeam.setTeamId(77L);
+        savedTeam.setSection(section);
+        savedTeam.setTeamName("Requirements Hub");
+        savedTeam.setTeamDescription("Centralized workspace");
+        savedTeam.setTeamWebsiteUrl("https://requirements-hub.example.com");
+
+        when(sectionRepository.findById(2L)).thenReturn(Optional.of(section));
+        when(teamRepository.existsByTeamNameIgnoreCase("Requirements Hub")).thenReturn(false);
+        when(teamRepository.save(org.mockito.ArgumentMatchers.any(Team.class))).thenReturn(savedTeam);
+
+        TeamDetail detail = teamService.createTeam(new CreateTeamRequest(
+            2L,
+            " Requirements Hub ",
+            " Centralized workspace ",
+            " https://requirements-hub.example.com "
+        ));
+
+        assertEquals(77L, detail.teamId());
+        assertEquals(2L, detail.sectionId());
+        assertEquals("Spring 2026 - Section A", detail.sectionName());
+        assertEquals("Requirements Hub", detail.teamName());
+        assertEquals("Centralized workspace", detail.teamDescription());
+        assertEquals("https://requirements-hub.example.com", detail.teamWebsiteUrl());
+        assertEquals(List.of(), detail.teamMemberNames());
+        assertEquals(List.of(), detail.instructorNames());
+        verify(sectionRepository).findById(2L);
+        verify(teamRepository).existsByTeamNameIgnoreCase("Requirements Hub");
+        verify(teamRepository).save(org.mockito.ArgumentMatchers.any(Team.class));
+    }
+
+    @Test
+    void should_TrimAndNormalizeOptionalFields_When_CreatingTeam() {
+        Section section = buildSection();
+        Team savedTeam = new Team();
+        savedTeam.setTeamId(88L);
+        savedTeam.setSection(section);
+        savedTeam.setTeamName("Review Board");
+        savedTeam.setTeamDescription(null);
+        savedTeam.setTeamWebsiteUrl(null);
+
+        when(sectionRepository.findById(2L)).thenReturn(Optional.of(section));
+        when(teamRepository.existsByTeamNameIgnoreCase("Review Board")).thenReturn(false);
+        when(teamRepository.save(org.mockito.ArgumentMatchers.any(Team.class))).thenReturn(savedTeam);
+
+        TeamDetail detail = teamService.createTeam(new CreateTeamRequest(2L, " Review Board ", "   ", "   "));
+
+        assertNull(detail.teamDescription());
+        assertNull(detail.teamWebsiteUrl());
+    }
+
+    @Test
+    void should_ThrowNotFoundException_When_SectionDoesNotExist() {
+        when(sectionRepository.findById(22L)).thenReturn(Optional.empty());
+
+        SectionNotFoundException ex = assertThrows(
+            SectionNotFoundException.class,
+            () -> teamService.createTeam(new CreateTeamRequest(22L, "Requirements Hub", null, null))
+        );
+
+        assertEquals("No section found with id: 22", ex.getMessage());
+    }
+
+    @Test
+    void should_ThrowConflict_When_TeamNameAlreadyExistsIgnoringCase() {
+        Section section = buildSection();
+        when(sectionRepository.findById(2L)).thenReturn(Optional.of(section));
+        when(teamRepository.existsByTeamNameIgnoreCase("pulse analytics")).thenReturn(true);
+
+        TeamAlreadyExistsException ex = assertThrows(
+            TeamAlreadyExistsException.class,
+            () -> teamService.createTeam(new CreateTeamRequest(2L, " pulse analytics ", null, null))
+        );
+
+        assertEquals("Team already exists with name: pulse analytics", ex.getMessage());
+    }
+
+    @Test
+    void should_ThrowInvalidArgument_When_TeamNameIsBlank() {
+        InvalidTeamException ex = assertThrows(
+            InvalidTeamException.class,
+            () -> teamService.createTeam(new CreateTeamRequest(2L, "   ", null, null))
+        );
+
+        assertEquals("Team name is required.", ex.getMessage());
+    }
+
+    @Test
+    void should_ThrowInvalidArgument_When_WebsiteUrlIsInvalid() {
+        InvalidTeamException ex = assertThrows(
+            InvalidTeamException.class,
+            () -> teamService.createTeam(new CreateTeamRequest(2L, "Requirements Hub", null, "not-a-url"))
+        );
+
+        assertEquals("Team website URL must start with http:// or https://.", ex.getMessage());
+    }
+
+    @Test
+    void should_ReturnCreatedTeamDetailWithEmptyMembersAndInstructors_When_TeamIsCreated() {
+        Section section = buildSection();
+        Team savedTeam = new Team();
+        savedTeam.setTeamId(99L);
+        savedTeam.setSection(section);
+        savedTeam.setTeamName("New Team");
+
+        when(sectionRepository.findById(2L)).thenReturn(Optional.of(section));
+        when(teamRepository.existsByTeamNameIgnoreCase("New Team")).thenReturn(false);
+        when(teamRepository.save(org.mockito.ArgumentMatchers.any(Team.class))).thenReturn(savedTeam);
+
+        TeamDetail detail = teamService.createTeam(new CreateTeamRequest(2L, "New Team", null, null));
+
+        assertEquals(List.of(), detail.teamMemberNames());
+        assertEquals(List.of(), detail.instructorNames());
+    }
+
     private Team buildTeam() {
-        Section section = new Section();
-        section.setSectionId(2L);
-        section.setSectionName("Spring 2026 - Section A");
+        Section section = buildSection();
 
         User student1 = new User();
         student1.setFirstName("Zoe");
@@ -140,5 +264,12 @@ class TeamServiceTest {
         team.setStudents(new LinkedHashSet<>(List.of(student1, student2)));
         team.setInstructors(new LinkedHashSet<>(List.of(instructor1, instructor2)));
         return team;
+    }
+
+    private Section buildSection() {
+        Section section = new Section();
+        section.setSectionId(2L);
+        section.setSectionName("Spring 2026 - Section A");
+        return section;
     }
 }

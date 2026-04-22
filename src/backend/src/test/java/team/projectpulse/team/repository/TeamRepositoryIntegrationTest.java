@@ -78,6 +78,24 @@ class TeamRepositoryIntegrationTest {
         assertTrue(team.isEmpty());
     }
 
+    @Test
+    void should_ReturnTrue_When_TeamNameExistsIgnoringCase() {
+        seedTeams();
+
+        boolean exists = teamRepository.existsByTeamNameIgnoreCase("pulse analytics");
+
+        assertTrue(exists);
+    }
+
+    @Test
+    void should_ReturnFalse_When_TeamNameDoesNotExist() {
+        seedTeams();
+
+        boolean exists = teamRepository.existsByTeamNameIgnoreCase("Missing Team");
+
+        assertEquals(false, exists);
+    }
+
     private SeededData seedTeams() {
         Section sectionA = new Section();
         sectionA.setSectionName("Spring 2026 - Section A");
