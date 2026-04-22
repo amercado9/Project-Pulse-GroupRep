@@ -1,6 +1,8 @@
 package team.projectpulse.section.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import team.projectpulse.section.dto.CreateSectionRequest;
 import team.projectpulse.section.dto.SectionDetail;
 import team.projectpulse.section.dto.SectionSummary;
 import team.projectpulse.section.service.SectionService;
@@ -16,6 +18,12 @@ public class SectionController {
 
     public SectionController(SectionService sectionService) {
         this.sectionService = sectionService;
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public Result<SectionDetail> createSection(@RequestBody CreateSectionRequest request) {
+        return Result.success(sectionService.createSection(request));
     }
 
     @GetMapping
