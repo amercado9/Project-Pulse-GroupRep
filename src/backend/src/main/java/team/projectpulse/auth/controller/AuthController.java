@@ -5,6 +5,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import team.projectpulse.auth.dto.InviteTokenInfo;
+import team.projectpulse.auth.dto.StudentRegisterRequest;
 import team.projectpulse.auth.service.AuthService;
 import team.projectpulse.config.JwtUtils;
 import team.projectpulse.system.Result;
@@ -58,6 +60,17 @@ public class AuthController {
     @PostMapping("/register")
     public Result<Void> register(@RequestBody RegisterRequest request) {
         authService.registerStudent(request);
+        return Result.success("Account created. Please log in.", null);
+    }
+
+    @GetMapping("/join")
+    public Result<InviteTokenInfo> validateJoinToken(@RequestParam String token) {
+        return Result.success(authService.validateStudentInviteToken(token));
+    }
+
+    @PostMapping("/join")
+    public Result<Void> joinWithToken(@RequestBody StudentRegisterRequest request) {
+        authService.registerStudentWithToken(request);
         return Result.success("Account created. Please log in.", null);
     }
 }

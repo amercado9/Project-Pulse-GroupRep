@@ -27,6 +27,13 @@ export const routes = [
     meta: { requiresAuth: false, visitorOnly: true }
   },
 
+  {
+    path: '/join',
+    component: () => import('@/features/auth/pages/JoinSection.vue'),
+    name: 'join-section',
+    meta: { requiresAuth: false }
+  },
+
   // ─── Main App (authenticated) ────────────────────────────────────────────
   {
     path: '/',

@@ -33,3 +33,9 @@ export const resetUserPassword = (email: string, token: string, newPassword: str
 
 export const changePassword = (payload: ChangePasswordRequest) =>
   request.patch<any, ChangePasswordResponse>(`${API.USERS}/change-password`, payload)
+
+export const validateJoinToken = (token: string) =>
+  request.get<any>(`${API.AUTH}/join`, { params: { token } })
+
+export const registerWithToken = (payload: { token: string; firstName: string; lastName: string; password: string }) =>
+  request.post<any>(`${API.AUTH}/join`, payload)
