@@ -1,13 +1,20 @@
 package team.projectpulse.team.service;
 
 import org.springframework.stereotype.Service;
+import team.projectpulse.section.domain.Section;
+import team.projectpulse.section.repository.SectionRepository;
 import team.projectpulse.team.domain.Team;
+import team.projectpulse.team.domain.InvalidTeamException;
+import team.projectpulse.team.domain.TeamAlreadyExistsException;
 import team.projectpulse.team.domain.TeamNotFoundException;
+import team.projectpulse.team.dto.CreateTeamRequest;
 import team.projectpulse.team.dto.TeamDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.repository.TeamRepository;
 import team.projectpulse.user.domain.User;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
@@ -15,9 +22,11 @@ import java.util.stream.StreamSupport;
 public class TeamService {
 
     private final TeamRepository teamRepository;
+    private final SectionRepository sectionRepository;
 
-    public TeamService(TeamRepository teamRepository) {
+    public TeamService(TeamRepository teamRepository, SectionRepository sectionRepository) {
         this.teamRepository = teamRepository;
+        this.sectionRepository = sectionRepository;
     }
 
     public List<TeamSummary> findTeams(Long sectionId, String sectionName, String teamName, String instructor) {
@@ -38,6 +47,37 @@ public class TeamService {
             .orElseThrow(() -> new TeamNotFoundException(id));
 
         return toDetail(team);
+    }
+
+    public TeamDetail createTeam(CreateTeamRequest request) {
+        if (request == null) {
+            throw new InvalidTeamException("Team request is required.");
+        }
+
+        if (request.sectionId() == null) {
+            throw new InvalidTeamException("Section is required.");
+        }
+
+        String normalizedName = requireTeamName(request.teamName());
+        String normalizedDescription = normalizeNullable(request.teamDescription());
+        String normalizedWebsite = normalizeNullable(request.teamWebsiteUrl());
+
+        validateWebsite(normalizedWebsite);
+
+        Section section = sectionRepository.findById(request.sectionId())
+            .orElseThrow(() -> new team.projectpulse.section.domain.SectionNotFoundException(request.sectionId()));
+
+        if (teamRepository.existsByTeamNameIgnoreCase(normalizedName)) {
+            throw new TeamAlreadyExistsException(normalizedName);
+        }
+
+        Team team = new Team();
+        team.setSection(section);
+        team.setTeamName(normalizedName);
+        team.setTeamDescription(normalizedDescription);
+        team.setTeamWebsiteUrl(normalizedWebsite);
+
+        return toDetail(teamRepository.save(team));
     }
 
     private TeamSummary toSummary(Team team) {
@@ -83,5 +123,41 @@ public class TeamService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeNullable(String value) {
+        return normalize(value);
+    }
+
+    private String requireTeamName(String teamName) {
+        String normalizedName = normalize(teamName);
+        if (normalizedName == null) {
+            throw new InvalidTeamException("Team name is required.");
+        }
+        if (normalizedName.length() > 255) {
+            throw new InvalidTeamException("Team name must be 255 characters or fewer.");
+        }
+        return normalizedName;
+    }
+
+    private void validateWebsite(String websiteUrl) {
+        if (websiteUrl == null) {
+            return;
+        }
+        if (websiteUrl.length() > 500) {
+            throw new InvalidTeamException("Team website URL must be 500 characters or fewer.");
+        }
+        try {
+            URI uri = new URI(websiteUrl);
+            String scheme = uri.getScheme();
+            if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+                throw new InvalidTeamException("Team website URL must start with http:// or https://.");
+            }
+            if (uri.getHost() == null || uri.getHost().isBlank()) {
+                throw new InvalidTeamException("Team website URL must be a valid absolute URL.");
+            }
+        } catch (URISyntaxException ex) {
+            throw new InvalidTeamException("Team website URL must be a valid absolute URL.");
+        }
     }
 }

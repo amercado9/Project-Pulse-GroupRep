@@ -4,10 +4,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import team.projectpulse.section.domain.SectionNotFoundException;
+import team.projectpulse.team.domain.InvalidTeamException;
+import team.projectpulse.team.domain.TeamAlreadyExistsException;
 import team.projectpulse.team.domain.TeamNotFoundException;
 import team.projectpulse.team.dto.TeamDetail;
 import team.projectpulse.team.dto.TeamSummary;
@@ -19,6 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -147,5 +152,110 @@ class TeamControllerIntegrationTest {
             .andExpect(jsonPath("$.message").value("No team found with id: 999"));
 
         verify(teamService).findTeamDetail(999L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_CreateTeamWrappedInResult_When_AdminRequestsCreate() throws Exception {
+        when(teamService.createTeam(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(new TeamDetail(
+                10L,
+                2L,
+                "Spring 2026 - Section A",
+                "Requirements Hub",
+                "desc",
+                "https://requirements-hub.example.com",
+                List.of(),
+                List.of()
+            ));
+
+        mockMvc.perform(post("/api/v1/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "sectionId": 2,
+                      "teamName": "Requirements Hub",
+                      "teamDescription": "desc",
+                      "teamWebsiteUrl": "https://requirements-hub.example.com"
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.message").value("Team created successfully."))
+            .andExpect(jsonPath("$.data.teamId").value(10))
+            .andExpect(jsonPath("$.data.teamName").value("Requirements Hub"))
+            .andExpect(jsonPath("$.data.teamMemberNames").isArray())
+            .andExpect(jsonPath("$.data.instructorNames").isArray());
+    }
+
+    @Test
+    @WithMockUser(roles = "INSTRUCTOR")
+    void should_ReturnForbidden_When_InstructorRequestsCreate() throws Exception {
+        mockMvc.perform(post("/api/v1/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sectionId\":2,\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void should_ReturnForbidden_When_StudentRequestsCreate() throws Exception {
+        mockMvc.perform(post("/api/v1/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sectionId\":2,\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void should_ReturnUnauthorized_When_UnauthenticatedRequestCreatesTeam() throws Exception {
+        mockMvc.perform(post("/api/v1/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sectionId\":2,\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnConflict_When_TeamNameAlreadyExists() throws Exception {
+        when(teamService.createTeam(org.mockito.ArgumentMatchers.any()))
+            .thenThrow(new TeamAlreadyExistsException("Requirements Hub"));
+
+        mockMvc.perform(post("/api/v1/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sectionId\":2,\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(409))
+            .andExpect(jsonPath("$.message").value("Team already exists with name: Requirements Hub"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnBadRequest_When_CreateRequestIsInvalid() throws Exception {
+        when(teamService.createTeam(org.mockito.ArgumentMatchers.any()))
+            .thenThrow(new InvalidTeamException("Team name is required."));
+
+        mockMvc.perform(post("/api/v1/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sectionId\":2,\"teamName\":\"   \"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(400))
+            .andExpect(jsonPath("$.message").value("Team name is required."));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnNotFound_When_SectionIdDoesNotExist() throws Exception {
+        when(teamService.createTeam(org.mockito.ArgumentMatchers.any()))
+            .thenThrow(new SectionNotFoundException(999L));
+
+        mockMvc.perform(post("/api/v1/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sectionId\":999,\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(404))
+            .andExpect(jsonPath("$.message").value("No section found with id: 999"));
     }
 }

@@ -10,6 +10,8 @@ import java.util.Optional;
 
 public interface TeamRepository extends JpaRepository<Team, Long> {
 
+    boolean existsByTeamNameIgnoreCase(String teamName);
+
     @Query("""
         select distinct t from Team t
         join fetch t.section s
