@@ -431,13 +431,12 @@ function getISOWeek(date: Date): string {
 }
 
 function formatWeekLabel(isoWeek: string): string {
-  // "2026-W05" → "Week 5 (2026)"
-  const [year, w] = isoWeek.split('-W')
+  const [year, w] = isoWeek.split('-W') as [string, string]
   return `Week ${parseInt(w)} (${year})`
 }
 
 function openWeeksDialog() {
-  if (!section.value?.startDate || !section.value?.endDate) return
+  if (!section.value || !section.value.startDate || !section.value.endDate) return
   allWeeks.value = generateWeeks(section.value.startDate, section.value.endDate)
   selectedWeeks.value = [...(section.value.activeWeeks ?? [])]
   weeksStep.value = 1
