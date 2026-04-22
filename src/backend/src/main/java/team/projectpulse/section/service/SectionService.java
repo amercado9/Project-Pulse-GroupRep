@@ -8,6 +8,7 @@ import team.projectpulse.section.domain.SectionAlreadyExistsException;
 import team.projectpulse.section.domain.SectionNotFoundException;
 import team.projectpulse.section.dto.CreateSectionRequest;
 import team.projectpulse.section.dto.SectionDetail;
+import team.projectpulse.section.dto.UpdateSectionRequest;
 import team.projectpulse.section.dto.SectionSummary;
 import team.projectpulse.section.repository.SectionRepository;
 
@@ -41,6 +42,44 @@ public class SectionService {
 
         Section section = new Section();
         section.setSectionName(request.sectionName());
+        section.setStartDate(request.startDate());
+        section.setEndDate(request.endDate());
+        section.setRubricId(request.rubricId());
+
+        Section saved = sectionRepository.save(section);
+
+        String rubricName = null;
+        if (saved.getRubricId() != null) {
+            rubricName = rubricRepository.findById(saved.getRubricId())
+                    .map(Rubric::getRubricName)
+                    .orElse(null);
+        }
+
+        return new SectionDetail(
+                saved.getSectionId(),
+                saved.getSectionName(),
+                saved.getStartDate(),
+                saved.getEndDate(),
+                saved.isActive(),
+                saved.getRubricId(),
+                rubricName,
+                List.of(),
+                List.of(),
+                List.of()
+        );
+    }
+
+    public SectionDetail updateSection(Long id, UpdateSectionRequest request) {
+        Section section = sectionRepository.findById(id)
+                .orElseThrow(() -> new SectionNotFoundException(id));
+
+        String newName = request.sectionName();
+        if (!section.getSectionName().equalsIgnoreCase(newName)
+                && sectionRepository.existsBySectionNameIgnoreCase(newName)) {
+            throw new SectionAlreadyExistsException(newName);
+        }
+
+        section.setSectionName(newName);
         section.setStartDate(request.startDate());
         section.setEndDate(request.endDate());
         section.setRubricId(request.rubricId());
