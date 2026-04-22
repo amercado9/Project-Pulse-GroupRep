@@ -15,6 +15,7 @@ import team.projectpulse.team.domain.TeamNotFoundException;
 import team.projectpulse.team.dto.CreateTeamRequest;
 import team.projectpulse.team.dto.TeamDetail;
 import team.projectpulse.team.dto.TeamSummary;
+import team.projectpulse.team.dto.UpdateTeamRequest;
 import team.projectpulse.team.repository.TeamRepository;
 import team.projectpulse.user.domain.User;
 
@@ -234,6 +235,111 @@ class TeamServiceTest {
 
         assertEquals(List.of(), detail.teamMemberNames());
         assertEquals(List.of(), detail.instructorNames());
+    }
+
+    @Test
+    void should_UpdateTeam_When_RequestIsValid() {
+        Team existingTeam = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(teamRepository.existsByTeamNameIgnoreCaseAndTeamIdNot("Requirements Hub", 10L)).thenReturn(false);
+        when(teamRepository.save(existingTeam)).thenReturn(existingTeam);
+
+        TeamDetail detail = teamService.updateTeam(10L, new UpdateTeamRequest(
+            " Requirements Hub ",
+            " Centralized workspace ",
+            " https://requirements-hub.example.com "
+        ));
+
+        assertEquals("Requirements Hub", detail.teamName());
+        assertEquals("Centralized workspace", detail.teamDescription());
+        assertEquals("https://requirements-hub.example.com", detail.teamWebsiteUrl());
+        assertEquals(List.of("Amy Adams", "Zoe Zeta"), detail.teamMemberNames());
+        assertEquals(List.of("Ivy Stone", "Noah Bennett"), detail.instructorNames());
+        verify(teamRepository).findDetailById(10L);
+        verify(teamRepository).existsByTeamNameIgnoreCaseAndTeamIdNot("Requirements Hub", 10L);
+        verify(teamRepository).save(existingTeam);
+    }
+
+    @Test
+    void should_TrimAndNormalizeOptionalFields_When_UpdatingTeam() {
+        Team existingTeam = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(teamRepository.existsByTeamNameIgnoreCaseAndTeamIdNot("Pulse Analytics", 10L)).thenReturn(false);
+        when(teamRepository.save(existingTeam)).thenReturn(existingTeam);
+
+        TeamDetail detail = teamService.updateTeam(10L, new UpdateTeamRequest(" Pulse Analytics ", "   ", "   "));
+
+        assertNull(detail.teamDescription());
+        assertNull(detail.teamWebsiteUrl());
+    }
+
+    @Test
+    void should_AllowSameName_When_UpdatingCurrentTeamWithoutChangingUniqueness() {
+        Team existingTeam = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(teamRepository.existsByTeamNameIgnoreCaseAndTeamIdNot("Pulse Analytics", 10L)).thenReturn(false);
+        when(teamRepository.save(existingTeam)).thenReturn(existingTeam);
+
+        TeamDetail detail = teamService.updateTeam(10L, new UpdateTeamRequest(
+            "Pulse Analytics",
+            "Updated description",
+            "https://pulse.example.com"
+        ));
+
+        assertEquals("Pulse Analytics", detail.teamName());
+        assertEquals("Updated description", detail.teamDescription());
+    }
+
+    @Test
+    void should_ThrowNotFoundException_When_UpdatingMissingTeam() {
+        when(teamRepository.findDetailById(404L)).thenReturn(Optional.empty());
+
+        TeamNotFoundException ex = assertThrows(
+            TeamNotFoundException.class,
+            () -> teamService.updateTeam(404L, new UpdateTeamRequest("Requirements Hub", null, null))
+        );
+
+        assertEquals("No team found with id: 404", ex.getMessage());
+    }
+
+    @Test
+    void should_ThrowConflict_When_OtherTeamUsesRequestedNameIgnoringCase() {
+        Team existingTeam = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(teamRepository.existsByTeamNameIgnoreCaseAndTeamIdNot("requirements hub", 10L)).thenReturn(true);
+
+        TeamAlreadyExistsException ex = assertThrows(
+            TeamAlreadyExistsException.class,
+            () -> teamService.updateTeam(10L, new UpdateTeamRequest(" requirements hub ", null, null))
+        );
+
+        assertEquals("Team already exists with name: requirements hub", ex.getMessage());
+    }
+
+    @Test
+    void should_ThrowInvalidArgument_When_UpdateTeamNameIsBlank() {
+        Team existingTeam = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+
+        InvalidTeamException ex = assertThrows(
+            InvalidTeamException.class,
+            () -> teamService.updateTeam(10L, new UpdateTeamRequest("   ", null, null))
+        );
+
+        assertEquals("Team name is required.", ex.getMessage());
+    }
+
+    @Test
+    void should_ThrowInvalidArgument_When_UpdateWebsiteUrlIsInvalid() {
+        Team existingTeam = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+
+        InvalidTeamException ex = assertThrows(
+            InvalidTeamException.class,
+            () -> teamService.updateTeam(10L, new UpdateTeamRequest("Requirements Hub", null, "not-a-url"))
+        );
+
+        assertEquals("Team website URL must start with http:// or https://.", ex.getMessage());
     }
 
     private Team buildTeam() {

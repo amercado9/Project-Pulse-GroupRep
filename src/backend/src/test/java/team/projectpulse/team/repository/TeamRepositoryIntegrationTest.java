@@ -59,7 +59,7 @@ class TeamRepositoryIntegrationTest {
     void should_FetchSectionStudentsAndInstructors_When_FindingTeamDetailById() {
         SeededData data = seedTeams();
 
-        Optional<Team> teamOptional = teamRepository.findDetailById(data.teamAlphaId());
+        Optional<Team> teamOptional = teamRepository.findDetailById(data.pulseAnalyticsId());
 
         assertTrue(teamOptional.isPresent());
         Team team = teamOptional.get();
@@ -96,6 +96,33 @@ class TeamRepositoryIntegrationTest {
         assertEquals(false, exists);
     }
 
+    @Test
+    void should_ReturnTrue_When_AnotherTeamHasSameNameIgnoringCase() {
+        SeededData data = seedTeams();
+
+        boolean exists = teamRepository.existsByTeamNameIgnoreCaseAndTeamIdNot("pulse analytics", data.reviewBoardId());
+
+        assertTrue(exists);
+    }
+
+    @Test
+    void should_ReturnFalse_When_OnlySameTeamHasThatName() {
+        SeededData data = seedTeams();
+
+        boolean exists = teamRepository.existsByTeamNameIgnoreCaseAndTeamIdNot("pulse analytics", data.pulseAnalyticsId());
+
+        assertEquals(false, exists);
+    }
+
+    @Test
+    void should_ReturnFalse_When_NameDoesNotExistForDifferentTeam() {
+        SeededData data = seedTeams();
+
+        boolean exists = teamRepository.existsByTeamNameIgnoreCaseAndTeamIdNot("Missing Team", data.pulseAnalyticsId());
+
+        assertEquals(false, exists);
+    }
+
     private SeededData seedTeams() {
         Section sectionA = new Section();
         sectionA.setSectionName("Spring 2026 - Section A");
@@ -124,7 +151,7 @@ class TeamRepositoryIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        return new SeededData("Review Board", "Pulse Analytics", "Gamma Studio", pulse.getTeamId());
+        return new SeededData("Review Board", "Pulse Analytics", "Gamma Studio", pulse.getTeamId(), review.getTeamId());
     }
 
     private User persistUser(String firstName, String lastName, String email, String roles) {
@@ -151,5 +178,5 @@ class TeamRepositoryIntegrationTest {
         return team;
     }
 
-    private record SeededData(String teamBravo, String teamAlpha, String teamGamma, Long teamAlphaId) {}
+    private record SeededData(String teamBravo, String teamAlpha, String teamGamma, Long pulseAnalyticsId, Long reviewBoardId) {}
 }

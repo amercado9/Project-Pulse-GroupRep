@@ -12,6 +12,8 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
     boolean existsByTeamNameIgnoreCase(String teamName);
 
+    boolean existsByTeamNameIgnoreCaseAndTeamIdNot(String teamName, Long teamId);
+
     @Query("""
         select distinct t from Team t
         join fetch t.section s

@@ -10,6 +10,7 @@ import team.projectpulse.team.domain.TeamNotFoundException;
 import team.projectpulse.team.dto.CreateTeamRequest;
 import team.projectpulse.team.dto.TeamDetail;
 import team.projectpulse.team.dto.TeamSummary;
+import team.projectpulse.team.dto.UpdateTeamRequest;
 import team.projectpulse.team.repository.TeamRepository;
 import team.projectpulse.user.domain.User;
 
@@ -73,6 +74,31 @@ public class TeamService {
 
         Team team = new Team();
         team.setSection(section);
+        team.setTeamName(normalizedName);
+        team.setTeamDescription(normalizedDescription);
+        team.setTeamWebsiteUrl(normalizedWebsite);
+
+        return toDetail(teamRepository.save(team));
+    }
+
+    public TeamDetail updateTeam(Long id, UpdateTeamRequest request) {
+        if (request == null) {
+            throw new InvalidTeamException("Team request is required.");
+        }
+
+        Team team = teamRepository.findDetailById(id)
+            .orElseThrow(() -> new TeamNotFoundException(id));
+
+        String normalizedName = requireTeamName(request.teamName());
+        String normalizedDescription = normalizeNullable(request.teamDescription());
+        String normalizedWebsite = normalizeNullable(request.teamWebsiteUrl());
+
+        validateWebsite(normalizedWebsite);
+
+        if (teamRepository.existsByTeamNameIgnoreCaseAndTeamIdNot(normalizedName, id)) {
+            throw new TeamAlreadyExistsException(normalizedName);
+        }
+
         team.setTeamName(normalizedName);
         team.setTeamDescription(normalizedDescription);
         team.setTeamWebsiteUrl(normalizedWebsite);

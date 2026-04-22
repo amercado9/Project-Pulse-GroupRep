@@ -1,6 +1,6 @@
 import request from '@/shared/utils/request'
 import type { ApiResponse } from '@/shared/types/api'
-import type { CreateTeamRequest, FindTeamsParams, TeamDetail, TeamSummary } from './teamTypes'
+import type { CreateTeamRequest, FindTeamsParams, TeamDetail, TeamSummary, UpdateTeamRequest } from './teamTypes'
 
 const BASE = '/teams'
 
@@ -12,3 +12,6 @@ export const getTeam = (id: number) =>
 
 export const createTeam = (payload: CreateTeamRequest) =>
   request.post<ApiResponse<TeamDetail>>(BASE, payload)
+
+export const updateTeam = (id: number, payload: UpdateTeamRequest) =>
+  request.put<ApiResponse<TeamDetail>>(`${BASE}/${id}`, payload)

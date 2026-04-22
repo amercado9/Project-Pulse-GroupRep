@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -257,5 +258,109 @@ class TeamControllerIntegrationTest {
             .andExpect(jsonPath("$.flag").value(false))
             .andExpect(jsonPath("$.code").value(404))
             .andExpect(jsonPath("$.message").value("No section found with id: 999"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_UpdateTeamWrappedInResult_When_AdminRequestsUpdate() throws Exception {
+        when(teamService.updateTeam(eq(10L), org.mockito.ArgumentMatchers.any()))
+            .thenReturn(new TeamDetail(
+                10L,
+                2L,
+                "Spring 2026 - Section A",
+                "Requirements Hub",
+                "Centralized workspace",
+                "https://requirements-hub.example.com",
+                List.of(),
+                List.of("Ivy Stone")
+            ));
+
+        mockMvc.perform(put("/api/v1/teams/10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "teamName": "Requirements Hub",
+                      "teamDescription": "Centralized workspace",
+                      "teamWebsiteUrl": "https://requirements-hub.example.com"
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.message").value("Team updated successfully."))
+            .andExpect(jsonPath("$.data.teamId").value(10))
+            .andExpect(jsonPath("$.data.teamName").value("Requirements Hub"));
+
+        verify(teamService).updateTeam(eq(10L), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @WithMockUser(roles = "INSTRUCTOR")
+    void should_ReturnForbidden_When_InstructorRequestsUpdate() throws Exception {
+        mockMvc.perform(put("/api/v1/teams/10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void should_ReturnForbidden_When_StudentRequestsUpdate() throws Exception {
+        mockMvc.perform(put("/api/v1/teams/10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void should_ReturnUnauthorized_When_UnauthenticatedRequestUpdatesTeam() throws Exception {
+        mockMvc.perform(put("/api/v1/teams/10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnNotFound_When_UpdatedTeamDoesNotExist() throws Exception {
+        when(teamService.updateTeam(eq(999L), org.mockito.ArgumentMatchers.any()))
+            .thenThrow(new TeamNotFoundException(999L));
+
+        mockMvc.perform(put("/api/v1/teams/999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(404))
+            .andExpect(jsonPath("$.message").value("No team found with id: 999"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnConflict_When_UpdatedTeamNameAlreadyExists() throws Exception {
+        when(teamService.updateTeam(eq(10L), org.mockito.ArgumentMatchers.any()))
+            .thenThrow(new TeamAlreadyExistsException("Requirements Hub"));
+
+        mockMvc.perform(put("/api/v1/teams/10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"teamName\":\"Requirements Hub\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(409))
+            .andExpect(jsonPath("$.message").value("Team already exists with name: Requirements Hub"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnBadRequest_When_UpdateRequestIsInvalid() throws Exception {
+        when(teamService.updateTeam(eq(10L), org.mockito.ArgumentMatchers.any()))
+            .thenThrow(new InvalidTeamException("Team name is required."));
+
+        mockMvc.perform(put("/api/v1/teams/10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"teamName\":\"   \"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(400))
+            .andExpect(jsonPath("$.message").value("Team name is required."));
     }
 }
