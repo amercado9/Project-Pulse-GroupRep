@@ -11,6 +11,7 @@ public record SectionDetail(
         boolean active,
         Long rubricId,
         String rubricName,
+        List<String> activeWeeks,
         List<TeamInfo> teams,
         List<String> unassignedStudents,
         List<String> unassignedInstructors

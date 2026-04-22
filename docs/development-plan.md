@@ -33,7 +33,7 @@ Modules: `auth`, `section`, `rubric`
 | UC-3 | View a senior design section | Done |
 | UC-4 | Create a senior design section | Done |
 | UC-5 | Edit a senior design section | Done |
-| UC-6 | Set up active weeks for a section | Not started |
+| UC-6 | Set up active weeks for a section | Done |
 | UC-25 | Student sets up a student account | Not started |
 | UC-31 | Generate peer eval report for entire section | Not started |
 | UC-32 | Generate WAR report for a team | Not started |

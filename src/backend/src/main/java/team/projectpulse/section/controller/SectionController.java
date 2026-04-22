@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import team.projectpulse.section.dto.CreateSectionRequest;
 import team.projectpulse.section.dto.SectionDetail;
+import team.projectpulse.section.dto.SetActiveWeeksRequest;
 import team.projectpulse.section.dto.UpdateSectionRequest;
 import team.projectpulse.section.dto.SectionSummary;
 import team.projectpulse.section.service.SectionService;
@@ -30,6 +31,11 @@ public class SectionController {
     @PutMapping("/{id}")
     public Result<SectionDetail> updateSection(@PathVariable Long id, @RequestBody UpdateSectionRequest request) {
         return Result.success(sectionService.updateSection(id, request));
+    }
+
+    @PutMapping("/{id}/active-weeks")
+    public Result<SectionDetail> setupActiveWeeks(@PathVariable Long id, @RequestBody SetActiveWeeksRequest request) {
+        return Result.success(sectionService.setupActiveWeeks(id, request));
     }
 
     @GetMapping

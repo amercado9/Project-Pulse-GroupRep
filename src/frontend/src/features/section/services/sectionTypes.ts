@@ -33,6 +33,7 @@ export interface SectionDetail {
   active: boolean
   rubricId: number | null
   rubricName: string | null
+  activeWeeks: string[]
   teams: TeamInfo[]
   unassignedStudents: string[]
   unassignedInstructors: string[]
