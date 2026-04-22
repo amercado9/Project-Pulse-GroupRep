@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import team.projectpulse.section.dto.CreateSectionRequest;
 import team.projectpulse.section.dto.SectionDetail;
+import team.projectpulse.section.dto.UpdateSectionRequest;
 import team.projectpulse.section.dto.SectionSummary;
 import team.projectpulse.section.service.SectionService;
 import team.projectpulse.system.Result;
@@ -24,6 +25,11 @@ public class SectionController {
     @ResponseStatus(HttpStatus.CREATED)
     public Result<SectionDetail> createSection(@RequestBody CreateSectionRequest request) {
         return Result.success(sectionService.createSection(request));
+    }
+
+    @PutMapping("/{id}")
+    public Result<SectionDetail> updateSection(@PathVariable Long id, @RequestBody UpdateSectionRequest request) {
+        return Result.success(sectionService.updateSection(id, request));
     }
 
     @GetMapping
