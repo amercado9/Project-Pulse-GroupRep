@@ -33,6 +33,35 @@ export interface UpdateTeamRequest {
   teamWebsiteUrl: string | null
 }
 
+export interface StudentAssignmentCandidate {
+  studentId: number
+  fullName: string
+  email: string
+}
+
+export interface TeamStudentAssignmentTeam {
+  teamId: number
+  teamName: string
+  assignedStudents: StudentAssignmentCandidate[]
+}
+
+export interface TeamStudentAssignmentWorkspace {
+  sectionId: number
+  sectionName: string
+  teams: TeamStudentAssignmentTeam[]
+  students: StudentAssignmentCandidate[]
+}
+
+export interface TeamStudentAssignmentInput {
+  teamId: number
+  studentIds: number[]
+}
+
+export interface UpdateTeamStudentAssignmentsRequest {
+  sectionId: number
+  assignments: TeamStudentAssignmentInput[]
+}
+
 export interface FindTeamsParams {
   sectionId?: number
   sectionName?: string

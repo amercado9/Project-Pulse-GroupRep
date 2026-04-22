@@ -70,6 +70,12 @@ export const routes = [
         meta: { title: 'Teams', icon: 'mdi-account-group', isMenuItem: true, requiresAuth: true, roles: ['admin', 'instructor'] }
       },
       {
+        path: '/teams/assign-students',
+        component: () => import('@/features/team/pages/TeamStudentAssignments.vue'),
+        name: 'team-student-assignments',
+        meta: { requiresAuth: true, roles: ['admin'] }
+      },
+      {
         path: '/teams/:id',
         component: () => import('@/features/team/pages/TeamDetail.vue'),
         name: 'team-detail',
