@@ -3,15 +3,18 @@ import type { ApiResponse } from '@/shared/types/api'
 import type {
   CreateTeamRequest,
   FindTeamsParams,
+  TeamInstructorAssignmentWorkspace,
   TeamDetail,
   TeamStudentAssignmentWorkspace,
   TeamSummary,
+  UpdateTeamInstructorAssignmentsRequest,
   UpdateTeamRequest,
   UpdateTeamStudentAssignmentsRequest
 } from './teamTypes'
 
 const BASE = '/teams'
 const ASSIGNMENT_BASE = '/team-student-assignments'
+const INSTRUCTOR_ASSIGNMENT_BASE = '/team-instructor-assignments'
 
 export const findTeams = (params?: FindTeamsParams) =>
   request.get<ApiResponse<TeamSummary[]>>(BASE, { params: params ?? {} })
@@ -36,3 +39,9 @@ export const getTeamStudentAssignmentWorkspace = (sectionId: number) =>
 
 export const updateTeamStudentAssignments = (payload: UpdateTeamStudentAssignmentsRequest) =>
   request.put<ApiResponse<TeamStudentAssignmentWorkspace>>(ASSIGNMENT_BASE, payload)
+
+export const getTeamInstructorAssignmentWorkspace = (sectionId: number) =>
+  request.get<ApiResponse<TeamInstructorAssignmentWorkspace>>(INSTRUCTOR_ASSIGNMENT_BASE, { params: { sectionId } })
+
+export const updateTeamInstructorAssignments = (payload: UpdateTeamInstructorAssignmentsRequest) =>
+  request.put<ApiResponse<TeamInstructorAssignmentWorkspace>>(INSTRUCTOR_ASSIGNMENT_BASE, payload)

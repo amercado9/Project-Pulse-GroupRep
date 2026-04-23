@@ -76,6 +76,12 @@ export const routes = [
         meta: { requiresAuth: true, roles: ['admin'] }
       },
       {
+        path: '/teams/assign-instructors',
+        component: () => import('@/features/team/pages/TeamInstructorAssignments.vue'),
+        name: 'team-instructor-assignments',
+        meta: { requiresAuth: true, roles: ['admin'] }
+      },
+      {
         path: '/teams/:id',
         component: () => import('@/features/team/pages/TeamDetail.vue'),
         name: 'team-detail',

@@ -42,6 +42,24 @@ class UserRepositoryIntegrationTest {
         assertEquals(List.of("amy@tcu.edu", "zoe@tcu.edu"), students.stream().map(User::getEmail).toList());
     }
 
+    @Test
+    void should_ReturnOnlyEnabledInstructorsOrderedByName() {
+        Section section = persistSection("Spring 2026 - Section A");
+
+        persistUser("Zoe", "Zimmer", "zoe@tcu.edu", "student", true, section);
+        persistUser("Ivy", "Stone", "ivy@tcu.edu", "instructor", true, section);
+        persistUser("Noah", "Bennett", "noah@tcu.edu", "admin instructor", true, section);
+        persistUser("Avery", "Mills", "avery@tcu.edu", "instructor", false, section);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        List<User> instructors = userRepository.findEnabledInstructorsOrdered();
+
+        assertEquals(List.of("Noah", "Ivy"), instructors.stream().map(User::getFirstName).toList());
+        assertEquals(List.of("noah@tcu.edu", "ivy@tcu.edu"), instructors.stream().map(User::getEmail).toList());
+    }
+
     private Section persistSection(String sectionName) {
         Section section = new Section();
         section.setSectionName(sectionName);

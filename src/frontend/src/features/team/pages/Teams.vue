@@ -7,6 +7,9 @@
           <v-btn variant="outlined" prepend-icon="mdi-account-switch" @click="openAssignmentsPage">
             Assign Students
           </v-btn>
+          <v-btn variant="outlined" prepend-icon="mdi-account-tie" @click="openInstructorAssignmentsPage">
+            Assign Instructors
+          </v-btn>
           <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">Create Team</v-btn>
         </div>
       </v-col>
@@ -402,6 +405,10 @@ function dismissDeletedTeamNotification() {
 
 function openAssignmentsPage() {
   router.push({ name: 'team-student-assignments' })
+}
+
+function openInstructorAssignmentsPage() {
+  router.push({ name: 'team-instructor-assignments' })
 }
 
 async function openCreateDialog() {
