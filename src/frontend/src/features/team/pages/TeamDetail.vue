@@ -48,26 +48,37 @@
       </v-card>
 
       <v-row>
+        <!-- Team Members -->
         <v-col cols="12" md="6">
           <v-card variant="outlined" class="fill-height">
             <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">Team Members</v-card-title>
             <v-card-text>
-              <v-alert v-if="team.teamMemberNames.length === 0" type="info" variant="tonal" density="compact">
+              <v-alert v-if="team.teamMembers.length === 0" type="info" variant="tonal" density="compact">
                 No team members assigned.
               </v-alert>
               <div v-else>
-                <v-chip
-                  v-for="member in team.teamMemberNames"
-                  :key="member"
-                  size="small"
-                  class="mr-1 mb-1"
+                <div
+                  v-for="member in team.teamMembers"
+                  :key="member.id"
+                  class="d-flex align-center justify-space-between mb-1"
                 >
-                  {{ member }}
-                </v-chip>
+                  <v-chip size="small">{{ member.fullName }}</v-chip>
+                  <v-btn
+                    v-if="isAdmin"
+                    size="x-small"
+                    variant="text"
+                    color="error"
+                    icon="mdi-close"
+                    :title="`Remove ${member.fullName} from team`"
+                    @click="initiateRemoval(member)"
+                  />
+                </div>
               </div>
             </v-card-text>
           </v-card>
         </v-col>
+
+        <!-- Instructors -->
         <v-col cols="12" md="6">
           <v-card variant="outlined" class="fill-height">
             <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">Instructors</v-card-title>
@@ -93,14 +104,15 @@
       </v-row>
     </template>
 
-    <v-dialog v-model="dialog" max-width="700" persistent>
+    <!-- Edit Team Dialog -->
+    <v-dialog v-model="editDialog" max-width="700" persistent>
       <v-card>
         <v-card-title class="pa-4">
-          {{ step === 1 ? 'Edit Team' : 'Confirm Team Changes' }}
+          {{ editStep === 1 ? 'Edit Team' : 'Confirm Team Changes' }}
         </v-card-title>
         <v-divider />
 
-        <v-card-text v-if="step === 1" class="pa-4">
+        <v-card-text v-if="editStep === 1" class="pa-4">
           <v-text-field
             v-model="form.teamName"
             label="Team Name"
@@ -108,14 +120,12 @@
             :error-messages="errors.teamName"
             class="mb-4"
           />
-
           <v-textarea
             v-model="form.teamDescription"
             label="Team Description"
             rows="3"
             class="mb-4"
           />
-
           <v-text-field
             v-model="form.teamWebsiteUrl"
             label="Team Website URL"
@@ -154,13 +164,50 @@
         <v-card-actions class="pa-4">
           <v-btn variant="text" @click="cancelEdit">Cancel</v-btn>
           <v-spacer />
-          <v-btn v-if="step === 2" variant="outlined" @click="step = 1">Modify</v-btn>
+          <v-btn v-if="editStep === 2" variant="outlined" @click="editStep = 1">Modify</v-btn>
           <v-btn
             color="primary"
             :loading="saving"
-            @click="step === 1 ? goToPreview() : confirmEdit()"
+            @click="editStep === 1 ? goToPreview() : confirmEdit()"
           >
-            {{ step === 1 ? 'Preview' : 'Confirm' }}
+            {{ editStep === 1 ? 'Preview' : 'Confirm' }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Remove Student Confirmation Dialog -->
+    <v-dialog v-model="removeDialog" max-width="520" persistent>
+      <v-card v-if="pendingRemoval">
+        <v-card-title class="pa-4">Remove Team Member</v-card-title>
+        <v-divider />
+        <v-card-text class="pa-4">
+          <v-alert type="warning" variant="tonal" class="mb-4">
+            You are about to remove <strong>{{ pendingRemoval.fullName }}</strong> from
+            <strong>{{ team?.teamName }}</strong>.
+          </v-alert>
+
+          <div class="text-subtitle-2 font-weight-bold mb-2">New Team Roster</div>
+          <div v-if="membersAfterRemoval.length === 0" class="text-medium-emphasis">
+            No members will remain in this team.
+          </div>
+          <div v-else>
+            <v-chip
+              v-for="m in membersAfterRemoval"
+              :key="m.id"
+              size="small"
+              class="mr-1 mb-1"
+            >
+              {{ m.fullName }}
+            </v-chip>
+          </div>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="pa-4">
+          <v-btn variant="text" @click="cancelRemoval">Go Back</v-btn>
+          <v-spacer />
+          <v-btn color="error" :loading="removing" @click="confirmRemoval">
+            Confirm Removal
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -176,8 +223,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserInfoStore } from '@/stores/userInfo'
-import { getTeam, updateTeam } from '../services/teamService'
-import type { TeamDetail, UpdateTeamRequest } from '../services/teamTypes'
+import { getTeam, removeStudentFromTeam, updateTeam } from '../services/teamService'
+import type { TeamDetail, TeamMember, UpdateTeamRequest } from '../services/teamTypes'
 
 const route = useRoute()
 const router = useRouter()
@@ -185,18 +232,16 @@ const userInfoStore = useUserInfoStore()
 
 const team = ref<TeamDetail | null>(null)
 const loading = ref(false)
-const dialog = ref(false)
-const step = ref(1)
 const saving = ref(false)
+const removing = ref(false)
+const editDialog = ref(false)
+const removeDialog = ref(false)
+const editStep = ref(1)
+const pendingRemoval = ref<TeamMember | null>(null)
 const errors = ref<{ teamName?: string; teamWebsiteUrl?: string }>({})
 const snackbar = ref({ show: false, message: '', color: 'success' })
 
-const emptyForm = () => ({
-  teamName: '',
-  teamDescription: '',
-  teamWebsiteUrl: ''
-})
-
+const emptyForm = () => ({ teamName: '', teamDescription: '', teamWebsiteUrl: '' })
 const form = ref(emptyForm())
 
 const isAdmin = computed(() => userInfoStore.isAdmin)
@@ -207,16 +252,17 @@ const previewPayload = computed<UpdateTeamRequest>(() => ({
   teamWebsiteUrl: normalizeOptional(form.value.teamWebsiteUrl)
 }))
 
+const membersAfterRemoval = computed(() => {
+  if (!team.value || !pendingRemoval.value) return []
+  return team.value.teamMembers.filter(m => m.id !== pendingRemoval.value!.id)
+})
+
 onMounted(async () => {
   loading.value = true
   try {
-    const teamId = Number(route.params.id)
-    const res = await getTeam(teamId) as any
-    if (res.flag && res.data) {
-      team.value = res.data
-    } else {
-      router.replace({ name: 'not-found' })
-    }
+    const res = await getTeam(Number(route.params.id)) as any
+    if (res.flag && res.data) team.value = res.data
+    else router.replace({ name: 'not-found' })
   } catch {
     router.replace({ name: 'not-found' })
   } finally {
@@ -224,32 +270,29 @@ onMounted(async () => {
   }
 })
 
+// ── Edit team ────────────────────────────────────────────────────────────────
+
 function openEditDialog() {
   if (!team.value) return
-
   form.value = {
     teamName: team.value.teamName,
     teamDescription: team.value.teamDescription ?? '',
     teamWebsiteUrl: team.value.teamWebsiteUrl ?? ''
   }
   errors.value = {}
-  step.value = 1
-  dialog.value = true
+  editStep.value = 1
+  editDialog.value = true
 }
 
-function cancelEdit() {
-  dialog.value = false
-}
+function cancelEdit() { editDialog.value = false }
 
 function validate(): boolean {
   errors.value = {}
   let valid = true
-
   if (!form.value.teamName.trim()) {
     errors.value.teamName = 'Team name is required.'
     valid = false
   }
-
   if (form.value.teamWebsiteUrl.trim()) {
     try {
       const url = new URL(form.value.teamWebsiteUrl.trim())
@@ -262,24 +305,21 @@ function validate(): boolean {
       valid = false
     }
   }
-
   return valid
 }
 
 function goToPreview() {
-  if (!validate()) return
-  step.value = 2
+  if (validate()) editStep.value = 2
 }
 
 async function confirmEdit() {
   if (!team.value) return
-
   saving.value = true
   try {
     const res = await updateTeam(team.value.teamId, previewPayload.value) as any
     if (res.flag && res.data) {
       team.value = res.data
-      dialog.value = false
+      editDialog.value = false
       snackbar.value = { show: true, message: 'Team updated successfully.', color: 'success' }
     }
   } catch (error: any) {
@@ -287,14 +327,52 @@ async function confirmEdit() {
     if (typeof message === 'string') {
       if (message.toLowerCase().includes('team name')) {
         errors.value.teamName = message
-        step.value = 1
+        editStep.value = 1
       } else if (message.toLowerCase().includes('website')) {
         errors.value.teamWebsiteUrl = message
-        step.value = 1
+        editStep.value = 1
       }
     }
   } finally {
     saving.value = false
+  }
+}
+
+// ── Remove student ───────────────────────────────────────────────────────────
+
+function initiateRemoval(member: TeamMember) {
+  pendingRemoval.value = member
+  removeDialog.value = true
+}
+
+function cancelRemoval() {
+  removeDialog.value = false
+  pendingRemoval.value = null
+}
+
+async function confirmRemoval() {
+  if (!team.value || !pendingRemoval.value) return
+  removing.value = true
+  try {
+    const res = await removeStudentFromTeam(team.value.teamId, pendingRemoval.value.id) as any
+    if (res.flag && res.data) {
+      team.value = res.data
+      snackbar.value = {
+        show: true,
+        message: `${pendingRemoval.value.fullName} has been removed from ${team.value.teamName}.`,
+        color: 'success'
+      }
+      removeDialog.value = false
+      pendingRemoval.value = null
+    }
+  } catch (error: any) {
+    snackbar.value = {
+      show: true,
+      message: error?.response?.data?.message ?? 'Failed to remove student. Please try again.',
+      color: 'error'
+    }
+  } finally {
+    removing.value = false
   }
 }
 

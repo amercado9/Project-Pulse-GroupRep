@@ -9,7 +9,7 @@ public record TeamDetail(
     String teamName,
     String teamDescription,
     String teamWebsiteUrl,
-    List<String> teamMemberNames,
+    List<TeamMember> teamMembers,
     List<String> instructorNames
 ) {
 }

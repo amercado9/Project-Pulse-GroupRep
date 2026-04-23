@@ -1,3 +1,8 @@
+export interface TeamMember {
+  id: number
+  fullName: string
+}
+
 export interface TeamSummary {
   teamId: number
   sectionId: number
@@ -16,7 +21,7 @@ export interface TeamDetail {
   teamName: string
   teamDescription: string | null
   teamWebsiteUrl: string | null
-  teamMemberNames: string[]
+  teamMembers: TeamMember[]
   instructorNames: string[]
 }
 

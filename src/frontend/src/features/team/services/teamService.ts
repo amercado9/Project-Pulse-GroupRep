@@ -30,3 +30,6 @@ export const getTeamStudentAssignmentWorkspace = (sectionId: number) =>
 
 export const updateTeamStudentAssignments = (payload: UpdateTeamStudentAssignmentsRequest) =>
   request.put<ApiResponse<TeamStudentAssignmentWorkspace>>(ASSIGNMENT_BASE, payload)
+
+export const removeStudentFromTeam = (teamId: number, studentId: number) =>
+  request.delete<ApiResponse<TeamDetail>>(`${BASE}/${teamId}/students/${studentId}`)

@@ -1,6 +1,7 @@
 package team.projectpulse.team.controller;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,5 +56,11 @@ public class TeamController {
     @PreAuthorize("hasRole('ADMIN')")
     public Result<TeamDetail> updateTeam(@PathVariable Long id, @RequestBody UpdateTeamRequest request) {
         return Result.success("Team updated successfully.", teamService.updateTeam(id, request));
+    }
+
+    @DeleteMapping("/{teamId}/students/{studentId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<TeamDetail> removeStudentFromTeam(@PathVariable Long teamId, @PathVariable Long studentId) {
+        return Result.success("Student removed from team.", teamService.removeStudentFromTeam(teamId, studentId));
     }
 }

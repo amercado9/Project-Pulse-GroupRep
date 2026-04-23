@@ -1,14 +1,18 @@
 package team.projectpulse.team.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import team.projectpulse.section.domain.Section;
 import team.projectpulse.section.repository.SectionRepository;
-import team.projectpulse.team.domain.Team;
 import team.projectpulse.team.domain.InvalidTeamException;
+import team.projectpulse.team.domain.StudentNotInTeamException;
+import team.projectpulse.team.domain.Team;
 import team.projectpulse.team.domain.TeamAlreadyExistsException;
 import team.projectpulse.team.domain.TeamNotFoundException;
 import team.projectpulse.team.dto.CreateTeamRequest;
 import team.projectpulse.team.dto.TeamDetail;
+import team.projectpulse.team.dto.TeamMember;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.dto.UpdateTeamRequest;
 import team.projectpulse.team.repository.TeamRepository;
@@ -16,11 +20,14 @@ import team.projectpulse.user.domain.User;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
 @Service
 public class TeamService {
+
+    private static final Logger log = LoggerFactory.getLogger(TeamService.class);
 
     private final TeamRepository teamRepository;
     private final SectionRepository sectionRepository;
@@ -106,6 +113,24 @@ public class TeamService {
         return toDetail(teamRepository.save(team));
     }
 
+    public TeamDetail removeStudentFromTeam(Long teamId, Long studentId) {
+        Team team = teamRepository.findDetailById(teamId)
+            .orElseThrow(() -> new TeamNotFoundException(teamId));
+
+        User student = team.getStudents().stream()
+            .filter(u -> u.getId().equals(studentId))
+            .findFirst()
+            .orElseThrow(() -> new StudentNotInTeamException(studentId, teamId));
+
+        team.getStudents().remove(student);
+        TeamDetail updated = toDetail(teamRepository.save(team));
+
+        log.info("Student {} ({}) removed from team {} ({}) by admin.",
+                studentId, student.getEmail(), teamId, team.getTeamName());
+
+        return updated;
+    }
+
     private TeamSummary toSummary(Team team) {
         return new TeamSummary(
             team.getTeamId(),
@@ -127,9 +152,16 @@ public class TeamService {
             team.getTeamName(),
             team.getTeamDescription(),
             team.getTeamWebsiteUrl(),
-            toSortedNames(team.getStudents()),
+            toMembers(team.getStudents()),
             toSortedNames(team.getInstructors())
         );
+    }
+
+    private List<TeamMember> toMembers(Iterable<User> users) {
+        return StreamSupport.stream(users.spliterator(), false)
+            .map(u -> new TeamMember(u.getId(), (u.getFirstName() + " " + u.getLastName()).trim()))
+            .sorted(Comparator.comparing(TeamMember::fullName, String.CASE_INSENSITIVE_ORDER))
+            .toList();
     }
 
     private String toDisplayName(User user) {
