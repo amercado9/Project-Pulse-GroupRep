@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import team.projectpulse.system.Result;
 import team.projectpulse.system.StatusCode;
 import team.projectpulse.team.domain.InvalidTeamException;
+import team.projectpulse.team.domain.InvalidTeamInstructorAssignmentException;
 import team.projectpulse.team.domain.InvalidTeamStudentAssignmentException;
 import team.projectpulse.team.domain.StudentNotFoundException;
 import team.projectpulse.team.domain.TeamAlreadyExistsException;
@@ -36,6 +37,12 @@ public class TeamExceptionHandler {
     @ExceptionHandler(InvalidTeamStudentAssignmentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleInvalidTeamStudentAssignment(InvalidTeamStudentAssignmentException ex) {
+        return Result.error(StatusCode.INVALID_ARGUMENT, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidTeamInstructorAssignmentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handleInvalidTeamInstructorAssignment(InvalidTeamInstructorAssignmentException ex) {
         return Result.error(StatusCode.INVALID_ARGUMENT, ex.getMessage());
     }
 

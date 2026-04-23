@@ -73,14 +73,50 @@ export interface TeamStudentAssignmentWorkspace {
   students: StudentAssignmentCandidate[]
 }
 
+export interface InstructorAssignmentCandidate {
+  instructorId: number
+  fullName: string
+  email: string
+  assignedTeamNames: string[]
+}
+
+export interface TeamInstructorAssignmentInstructor {
+  instructorId: number
+  fullName: string
+  email: string
+}
+
+export interface TeamInstructorAssignmentTeam {
+  teamId: number
+  teamName: string
+  assignedInstructors: TeamInstructorAssignmentInstructor[]
+}
+
+export interface TeamInstructorAssignmentWorkspace {
+  sectionId: number
+  sectionName: string
+  teams: TeamInstructorAssignmentTeam[]
+  instructors: InstructorAssignmentCandidate[]
+}
+
 export interface TeamStudentAssignmentInput {
   teamId: number
   studentIds: number[]
 }
 
+export interface TeamInstructorAssignmentInput {
+  teamId: number
+  instructorIds: number[]
+}
+
 export interface UpdateTeamStudentAssignmentsRequest {
   sectionId: number
   assignments: TeamStudentAssignmentInput[]
+}
+
+export interface UpdateTeamInstructorAssignmentsRequest {
+  sectionId: number
+  assignments: TeamInstructorAssignmentInput[]
 }
 
 export interface FindTeamsParams {

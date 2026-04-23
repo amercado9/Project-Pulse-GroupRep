@@ -134,6 +134,17 @@ class TeamRepositoryIntegrationTest {
         assertEquals(List.of("Mia"), teams.get(1).getStudents().stream().map(User::getFirstName).toList());
     }
 
+    @Test
+    void should_FetchAllTeamsBySectionWithInstructorsOrderedByTeamName() {
+        SeededData data = seedTeams();
+
+        List<Team> teams = teamRepository.findAllBySectionIdWithInstructorsOrdered(data.sectionAId());
+
+        assertEquals(List.of("Pulse Analytics", "Review Board"), teams.stream().map(Team::getTeamName).toList());
+        assertEquals(List.of("Ivy"), teams.getFirst().getInstructors().stream().map(User::getFirstName).toList());
+        assertEquals(List.of("Noah"), teams.get(1).getInstructors().stream().map(User::getFirstName).toList());
+    }
+
     private SeededData seedTeams() {
         Section sectionA = new Section();
         sectionA.setSectionName("Spring 2026 - Section A");
