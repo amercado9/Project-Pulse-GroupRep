@@ -16,8 +16,15 @@ export interface TeamDetail {
   teamName: string
   teamDescription: string | null
   teamWebsiteUrl: string | null
+  teamMembers: TeamMemberDetail[]
   teamMemberNames: string[]
   instructorNames: string[]
+}
+
+export interface TeamMemberDetail {
+  studentId: number
+  fullName: string
+  email: string
 }
 
 export interface CreateTeamRequest {

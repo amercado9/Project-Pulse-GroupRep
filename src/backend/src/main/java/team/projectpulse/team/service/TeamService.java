@@ -5,17 +5,22 @@ import team.projectpulse.section.domain.Section;
 import team.projectpulse.section.repository.SectionRepository;
 import team.projectpulse.team.domain.Team;
 import team.projectpulse.team.domain.InvalidTeamException;
+import team.projectpulse.team.domain.InvalidTeamStudentAssignmentException;
+import team.projectpulse.team.domain.StudentNotFoundException;
 import team.projectpulse.team.domain.TeamAlreadyExistsException;
 import team.projectpulse.team.domain.TeamNotFoundException;
 import team.projectpulse.team.dto.CreateTeamRequest;
 import team.projectpulse.team.dto.TeamDetail;
+import team.projectpulse.team.dto.TeamMemberDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.dto.UpdateTeamRequest;
 import team.projectpulse.team.repository.TeamRepository;
 import team.projectpulse.user.domain.User;
+import team.projectpulse.user.repository.UserRepository;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
@@ -24,10 +29,12 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final SectionRepository sectionRepository;
+    private final UserRepository userRepository;
 
-    public TeamService(TeamRepository teamRepository, SectionRepository sectionRepository) {
+    public TeamService(TeamRepository teamRepository, SectionRepository sectionRepository, UserRepository userRepository) {
         this.teamRepository = teamRepository;
         this.sectionRepository = sectionRepository;
+        this.userRepository = userRepository;
     }
 
     public List<TeamSummary> findTeams(Long sectionId, String sectionName, String teamName, String instructor) {
@@ -106,6 +113,27 @@ public class TeamService {
         return toDetail(teamRepository.save(team));
     }
 
+    public TeamDetail removeStudentFromTeam(Long teamId, Long studentId) {
+        Team team = teamRepository.findDetailById(teamId)
+            .orElseThrow(() -> new TeamNotFoundException(teamId));
+
+        User student = userRepository.findById(studentId)
+            .orElseThrow(() -> new StudentNotFoundException(studentId));
+
+        boolean assignedToTeam = team.getStudents().stream()
+            .anyMatch(teamStudent -> teamStudent.getId().equals(student.getId()));
+
+        if (!assignedToTeam) {
+            throw new InvalidTeamStudentAssignmentException(
+                "Student " + studentId + " is not assigned to team " + teamId + "."
+            );
+        }
+
+        team.getStudents().removeIf(teamStudent -> teamStudent.getId().equals(student.getId()));
+
+        return toDetail(teamRepository.save(team));
+    }
+
     private TeamSummary toSummary(Team team) {
         return new TeamSummary(
             team.getTeamId(),
@@ -127,9 +155,19 @@ public class TeamService {
             team.getTeamName(),
             team.getTeamDescription(),
             team.getTeamWebsiteUrl(),
+            toSortedTeamMembers(team.getStudents()),
             toSortedNames(team.getStudents()),
             toSortedNames(team.getInstructors())
         );
+    }
+
+    private List<TeamMemberDetail> toSortedTeamMembers(Iterable<User> users) {
+        return StreamSupport.stream(users.spliterator(), false)
+            .sorted(Comparator
+                .comparing(this::toDisplayName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(User::getEmail, String.CASE_INSENSITIVE_ORDER))
+            .map(user -> new TeamMemberDetail(user.getId(), toDisplayName(user), user.getEmail()))
+            .toList();
     }
 
     private String toDisplayName(User user) {

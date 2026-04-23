@@ -25,6 +25,9 @@ export const createTeam = (payload: CreateTeamRequest) =>
 export const updateTeam = (id: number, payload: UpdateTeamRequest) =>
   request.put<ApiResponse<TeamDetail>>(`${BASE}/${id}`, payload)
 
+export const removeStudentFromTeam = (teamId: number, studentId: number) =>
+  request.delete<ApiResponse<TeamDetail>>(`${BASE}/${teamId}/students/${studentId}`)
+
 export const getTeamStudentAssignmentWorkspace = (sectionId: number) =>
   request.get<ApiResponse<TeamStudentAssignmentWorkspace>>(ASSIGNMENT_BASE, { params: { sectionId } })
 

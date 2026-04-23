@@ -11,17 +11,22 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import team.projectpulse.section.domain.SectionNotFoundException;
 import team.projectpulse.team.domain.InvalidTeamException;
+import team.projectpulse.team.domain.InvalidTeamStudentAssignmentException;
+import team.projectpulse.team.domain.StudentNotFoundException;
 import team.projectpulse.team.domain.TeamAlreadyExistsException;
 import team.projectpulse.team.domain.TeamNotFoundException;
 import team.projectpulse.team.dto.TeamDetail;
+import team.projectpulse.team.dto.TeamMemberDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.service.TeamService;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -92,6 +97,7 @@ class TeamControllerIntegrationTest {
                 "Pulse Analytics",
                 "desc",
                 "https://pulse.example.com",
+                List.of(new TeamMemberDetail(100L, "Ava Johnson", "ava@tcu.edu")),
                 List.of("Ava Johnson"),
                 List.of("Ivy Stone")
             ));
@@ -117,6 +123,7 @@ class TeamControllerIntegrationTest {
                 "Review Board",
                 null,
                 null,
+                List.of(),
                 List.of(),
                 List.of()
             ));
@@ -166,6 +173,7 @@ class TeamControllerIntegrationTest {
                 "Requirements Hub",
                 "desc",
                 "https://requirements-hub.example.com",
+                List.of(),
                 List.of(),
                 List.of()
             ));
@@ -272,6 +280,7 @@ class TeamControllerIntegrationTest {
                 "Centralized workspace",
                 "https://requirements-hub.example.com",
                 List.of(),
+                List.of(),
                 List.of("Ivy Stone")
             ));
 
@@ -362,5 +371,91 @@ class TeamControllerIntegrationTest {
             .andExpect(jsonPath("$.flag").value(false))
             .andExpect(jsonPath("$.code").value(400))
             .andExpect(jsonPath("$.message").value("Team name is required."));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_RemoveStudentFromTeam_When_AdminRequestsRemoval() throws Exception {
+        when(teamService.removeStudentFromTeam(10L, 100L))
+            .thenReturn(new TeamDetail(
+                10L,
+                2L,
+                "Spring 2026 - Section A",
+                "Requirements Hub",
+                "Centralized workspace",
+                "https://requirements-hub.example.com",
+                List.of(),
+                List.of(),
+                List.of("Ivy Stone")
+            ));
+
+        mockMvc.perform(delete("/api/v1/teams/10/students/100"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.message").value("Student removed from team successfully."))
+            .andExpect(jsonPath("$.data.teamId").value(10))
+            .andExpect(jsonPath("$.data.teamMembers").isArray())
+            .andExpect(jsonPath("$.data.teamMemberNames").isArray());
+
+        verify(teamService).removeStudentFromTeam(10L, 100L);
+    }
+
+    @Test
+    @WithMockUser(roles = "INSTRUCTOR")
+    void should_ReturnForbidden_When_InstructorRequestsStudentRemoval() throws Exception {
+        mockMvc.perform(delete("/api/v1/teams/10/students/100"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void should_ReturnForbidden_When_StudentRequestsStudentRemoval() throws Exception {
+        mockMvc.perform(delete("/api/v1/teams/10/students/100"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void should_ReturnUnauthorized_When_UnauthenticatedRequestRemovesStudent() throws Exception {
+        mockMvc.perform(delete("/api/v1/teams/10/students/100"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnNotFound_When_RemovingStudentFromMissingTeam() throws Exception {
+        when(teamService.removeStudentFromTeam(999L, 100L))
+            .thenThrow(new TeamNotFoundException(999L));
+
+        mockMvc.perform(delete("/api/v1/teams/999/students/100"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(404))
+            .andExpect(jsonPath("$.message").value("No team found with id: 999"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnNotFound_When_RemovedStudentDoesNotExist() throws Exception {
+        when(teamService.removeStudentFromTeam(10L, 404L))
+            .thenThrow(new StudentNotFoundException(404L));
+
+        mockMvc.perform(delete("/api/v1/teams/10/students/404"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(404))
+            .andExpect(jsonPath("$.message").value("No student found with id: 404"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnBadRequest_When_StudentIsNotAssignedToTeam() throws Exception {
+        when(teamService.removeStudentFromTeam(10L, 100L))
+            .thenThrow(new InvalidTeamStudentAssignmentException("Student 100 is not assigned to team 10."));
+
+        mockMvc.perform(delete("/api/v1/teams/10/students/100"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(400))
+            .andExpect(jsonPath("$.message").value("Student 100 is not assigned to team 10."));
     }
 }

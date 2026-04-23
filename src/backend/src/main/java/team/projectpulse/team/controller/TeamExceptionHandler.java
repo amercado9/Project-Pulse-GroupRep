@@ -8,6 +8,7 @@ import team.projectpulse.system.Result;
 import team.projectpulse.system.StatusCode;
 import team.projectpulse.team.domain.InvalidTeamException;
 import team.projectpulse.team.domain.InvalidTeamStudentAssignmentException;
+import team.projectpulse.team.domain.StudentNotFoundException;
 import team.projectpulse.team.domain.TeamAlreadyExistsException;
 import team.projectpulse.team.domain.TeamNotFoundException;
 
@@ -36,5 +37,11 @@ public class TeamExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleInvalidTeamStudentAssignment(InvalidTeamStudentAssignmentException ex) {
         return Result.error(StatusCode.INVALID_ARGUMENT, ex.getMessage());
+    }
+
+    @ExceptionHandler(StudentNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleStudentNotFound(StudentNotFoundException ex) {
+        return Result.notFound(ex.getMessage());
     }
 }
