@@ -54,4 +54,13 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
         order by lower(t.teamName)
         """)
     List<Team> findAllBySectionIdWithStudentsOrdered(@Param("sectionId") Long sectionId);
+
+    @Query("""
+        select t from Team t
+        join fetch t.section s
+        join t.students u
+        where u.id = :userId
+        order by s.sectionName desc, t.teamName asc
+        """)
+    List<Team> findByStudentId(@Param("userId") Long userId);
 }

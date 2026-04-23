@@ -62,6 +62,20 @@ export const routes = [
         meta: { requiresAuth: true, roles: ['admin'] }
       },
 
+      // ── Students ─────────────────────────────────────────────────────────
+      {
+        path: '/students',
+        component: () => import('@/features/student/pages/Students.vue'),
+        name: 'students',
+        meta: { title: 'Students', icon: 'mdi-account-school', isMenuItem: true, requiresAuth: true, roles: ['admin', 'instructor'] }
+      },
+      {
+        path: '/students/:id',
+        component: () => import('@/features/student/pages/StudentDetail.vue'),
+        name: 'student-detail',
+        meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
+      },
+
       // ── Teams ────────────────────────────────────────────────────────────
       {
         path: '/teams',
