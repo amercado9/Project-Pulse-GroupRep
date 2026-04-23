@@ -14,7 +14,12 @@
           <h2 class="text-h5 font-weight-bold">{{ team.teamName }}</h2>
         </v-col>
         <v-col v-if="isAdmin" cols="auto">
-          <v-btn color="primary" prepend-icon="mdi-pencil" @click="openEditDialog">Edit Team</v-btn>
+          <div class="admin-actions">
+            <v-btn color="primary" prepend-icon="mdi-pencil" @click="openEditDialog">Edit Team</v-btn>
+            <v-btn color="error" variant="outlined" prepend-icon="mdi-delete" @click="openDeleteDialog">
+              Delete Team
+            </v-btn>
+          </div>
         </v-col>
         <v-col cols="auto">
           <v-chip color="primary" variant="tonal">
@@ -327,6 +332,138 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="deleteDialog" max-width="760" persistent>
+      <v-card>
+        <v-card-title class="pa-4">
+          {{ deleteStep === 1 ? 'Delete Team' : 'Confirm Team Deletion' }}
+        </v-card-title>
+        <v-divider />
+
+        <v-card-text v-if="deleteStep === 1" class="pa-4">
+          <v-alert type="warning" variant="tonal" class="mb-4">
+            Deleting this senior design team is permanent and cannot be undone.
+          </v-alert>
+
+          <div class="text-body-2 mb-4">
+            If you continue, the system will physically delete this team. Students and instructors will be removed
+            from the team automatically. Associated WARs and peer evaluations would also be deleted if those
+            records existed.
+          </div>
+
+          <v-table density="compact" class="mb-4">
+            <tbody>
+              <tr>
+                <th class="text-left">Section</th>
+                <td>{{ team?.sectionName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Team</th>
+                <td>{{ team?.teamName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Deletion Strategy</th>
+                <td>Physical delete</td>
+              </tr>
+              <tr>
+                <th class="text-left">Current Scope</th>
+                <td>Existing team and membership data in the current system</td>
+              </tr>
+            </tbody>
+          </v-table>
+
+          <v-alert type="info" variant="tonal">
+            WAR and peer-evaluation modules are not present in this repo yet, so this implementation deletes the
+            existing team and membership records now and defers future related-record cleanup until those modules exist.
+          </v-alert>
+        </v-card-text>
+
+        <v-card-text v-else class="pa-4">
+          <v-alert type="warning" variant="tonal" class="mb-4">
+            Please review the deletion consequences before confirming.
+          </v-alert>
+
+          <v-table density="compact" class="mb-4">
+            <tbody>
+              <tr>
+                <th class="text-left">Section</th>
+                <td>{{ team?.sectionName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Team</th>
+                <td>{{ team?.teamName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Status</th>
+                <td>Permanently delete this team</td>
+              </tr>
+            </tbody>
+          </v-table>
+
+          <div class="text-subtitle-2 font-weight-bold mb-2">Students to Remove</div>
+          <v-alert
+            v-if="!team?.teamMembers.length"
+            type="info"
+            variant="tonal"
+            density="compact"
+            class="mb-4"
+          >
+            No students are currently assigned to this team.
+          </v-alert>
+          <div v-else class="mb-4">
+            <v-chip
+              v-for="member in team.teamMembers"
+              :key="member.studentId"
+              size="small"
+              class="mr-1 mb-1"
+            >
+              {{ member.fullName }}
+            </v-chip>
+          </div>
+
+          <div class="text-subtitle-2 font-weight-bold mb-2">Instructors to Remove</div>
+          <v-alert
+            v-if="!team?.instructorNames.length"
+            type="info"
+            variant="tonal"
+            density="compact"
+            class="mb-4"
+          >
+            No instructors are currently assigned to this team.
+          </v-alert>
+          <div v-else class="mb-4">
+            <v-chip
+              v-for="instructor in team.instructorNames"
+              :key="instructor"
+              size="small"
+              color="primary"
+              variant="tonal"
+              class="mr-1 mb-1"
+            >
+              {{ instructor }}
+            </v-chip>
+          </div>
+
+          <v-alert type="error" variant="tonal">
+            This action cannot be undone.
+          </v-alert>
+        </v-card-text>
+
+        <v-divider />
+        <v-card-actions class="pa-4">
+          <v-btn variant="text" @click="cancelDelete">Cancel</v-btn>
+          <v-spacer />
+          <v-btn v-if="deleteStep === 2" variant="outlined" @click="deleteStep = 1">Modify</v-btn>
+          <v-btn
+            color="error"
+            :loading="deleteSaving"
+            @click="deleteStep === 1 ? goToDeletePreview() : confirmDelete()"
+          >
+            {{ deleteStep === 1 ? 'Preview' : 'Confirm' }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
       {{ snackbar.message }}
     </v-snackbar>
@@ -337,8 +474,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserInfoStore } from '@/stores/userInfo'
-import { getTeam, removeStudentFromTeam, updateTeam } from '../services/teamService'
-import type { TeamDetail, TeamMemberDetail, UpdateTeamRequest } from '../services/teamTypes'
+import { deleteTeam, getTeam, removeStudentFromTeam, updateTeam } from '../services/teamService'
+import { useTeamNotificationsStore } from '../stores/teamNotifications'
+import type { TeamDeletionNotification, TeamDetail, TeamMemberDetail, UpdateTeamRequest } from '../services/teamTypes'
 
 interface RemovedStudentNotification {
   fullName: string
@@ -351,6 +489,7 @@ interface RemovedStudentNotification {
 const route = useRoute()
 const router = useRouter()
 const userInfoStore = useUserInfoStore()
+const teamNotificationsStore = useTeamNotificationsStore()
 
 const team = ref<TeamDetail | null>(null)
 const loading = ref(false)
@@ -363,6 +502,9 @@ const removeStep = ref(1)
 const removeSaving = ref(false)
 const removeErrors = ref<{ studentId?: string }>({})
 const selectedStudentId = ref<number | null>(null)
+const deleteDialog = ref(false)
+const deleteStep = ref(1)
+const deleteSaving = ref(false)
 const removedStudentNotification = ref<RemovedStudentNotification | null>(null)
 const snackbar = ref({ show: false, message: '', color: 'success' })
 
@@ -438,6 +580,16 @@ function cancelRemove() {
   removeStep.value = 1
 }
 
+function openDeleteDialog() {
+  deleteStep.value = 1
+  deleteDialog.value = true
+}
+
+function cancelDelete() {
+  deleteDialog.value = false
+  deleteStep.value = 1
+}
+
 function validateEdit(): boolean {
   editErrors.value = {}
   let valid = true
@@ -480,6 +632,10 @@ function goToEditPreview() {
 function goToRemovePreview() {
   if (!validateRemove()) return
   removeStep.value = 2
+}
+
+function goToDeletePreview() {
+  deleteStep.value = 2
 }
 
 async function confirmEdit() {
@@ -544,8 +700,52 @@ async function confirmRemove() {
   }
 }
 
+async function confirmDelete() {
+  if (!team.value) return
+
+  deleteSaving.value = true
+  const notification = buildDeletedTeamNotification(team.value)
+
+  try {
+    const res = await deleteTeam(team.value.teamId) as any
+    if (res.flag) {
+      teamNotificationsStore.setDeletedTeamNotification(notification)
+      await router.push({ name: 'teams' })
+      return
+    }
+
+    snackbar.value = { show: true, message: res.message || 'Failed to delete team.', color: 'error' }
+  } catch (error: any) {
+    const message = error?.response?.data?.message || 'Failed to delete team.'
+    snackbar.value = { show: true, message, color: 'error' }
+  } finally {
+    deleteSaving.value = false
+  }
+}
+
+function buildDeletedTeamNotification(currentTeam: TeamDetail): TeamDeletionNotification {
+  return {
+    teamId: currentTeam.teamId,
+    teamName: currentTeam.teamName,
+    sectionName: currentTeam.sectionName,
+    studentNotifications: currentTeam.teamMembers.map((member) => ({
+      fullName: member.fullName,
+      email: member.email
+    })),
+    instructorNotifications: currentTeam.instructorNames.map((fullName) => ({ fullName })),
+    status: 'Team deleted'
+  }
+}
+
 function normalizeOptional(value: string): string | null {
   const trimmed = value.trim()
   return trimmed ? trimmed : null
 }
 </script>
+
+<style scoped lang="scss">
+.admin-actions {
+  display: flex;
+  gap: 12px;
+}
+</style>

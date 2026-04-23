@@ -25,6 +25,9 @@ export const createTeam = (payload: CreateTeamRequest) =>
 export const updateTeam = (id: number, payload: UpdateTeamRequest) =>
   request.put<ApiResponse<TeamDetail>>(`${BASE}/${id}`, payload)
 
+export const deleteTeam = (id: number) =>
+  request.delete<ApiResponse<null>>(`${BASE}/${id}`)
+
 export const removeStudentFromTeam = (teamId: number, studentId: number) =>
   request.delete<ApiResponse<TeamDetail>>(`${BASE}/${teamId}/students/${studentId}`)
 

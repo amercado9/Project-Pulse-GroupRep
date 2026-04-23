@@ -30,6 +30,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -359,6 +360,41 @@ class TeamServiceTest {
         );
 
         assertEquals("Team website URL must start with http:// or https://.", ex.getMessage());
+    }
+
+    @Test
+    void should_DeleteTeam_When_TeamExists() {
+        Team existingTeam = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+
+        teamService.deleteTeam(10L);
+
+        verify(teamRepository).findDetailById(10L);
+        verify(teamRepository).delete(existingTeam);
+    }
+
+    @Test
+    void should_ThrowNotFoundException_When_DeletingMissingTeam() {
+        when(teamRepository.findDetailById(404L)).thenReturn(Optional.empty());
+
+        TeamNotFoundException ex = assertThrows(
+            TeamNotFoundException.class,
+            () -> teamService.deleteTeam(404L)
+        );
+
+        assertEquals("No team found with id: 404", ex.getMessage());
+        verify(teamRepository, never()).delete(org.mockito.ArgumentMatchers.any(Team.class));
+    }
+
+    @Test
+    void should_LoadExistingTeamBeforeDelete_When_DeletingTeam() {
+        Team existingTeam = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+
+        teamService.deleteTeam(10L);
+
+        verify(teamRepository).findDetailById(10L);
+        verify(teamRepository).delete(existingTeam);
     }
 
     @Test

@@ -113,6 +113,13 @@ public class TeamService {
         return toDetail(teamRepository.save(team));
     }
 
+    public void deleteTeam(Long id) {
+        Team team = teamRepository.findDetailById(id)
+            .orElseThrow(() -> new TeamNotFoundException(id));
+
+        teamRepository.delete(team);
+    }
+
     public TeamDetail removeStudentFromTeam(Long teamId, Long studentId) {
         Team team = teamRepository.findDetailById(teamId)
             .orElseThrow(() -> new TeamNotFoundException(teamId));
