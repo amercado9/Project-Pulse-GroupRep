@@ -12,6 +12,89 @@
       </v-col>
     </v-row>
 
+    <v-row v-if="deletedTeamNotification" class="mb-4">
+      <v-col cols="12">
+        <v-card variant="outlined">
+          <v-card-title class="pa-4 pb-2 d-flex align-center">
+            <span>Notify Affected Users</span>
+            <v-spacer />
+            <v-btn variant="text" size="small" @click="dismissDeletedTeamNotification">Dismiss</v-btn>
+          </v-card-title>
+          <v-card-text class="pt-0">
+            <div class="text-body-2 mb-3">
+              Use this summary to notify affected students and instructors manually about the deleted team.
+            </div>
+
+            <v-table density="compact" class="mb-4">
+              <tbody>
+                <tr>
+                  <th class="text-left">Team</th>
+                  <td>{{ deletedTeamNotification.teamName }}</td>
+                </tr>
+                <tr>
+                  <th class="text-left">Section</th>
+                  <td>{{ deletedTeamNotification.sectionName }}</td>
+                </tr>
+                <tr>
+                  <th class="text-left">Status</th>
+                  <td>{{ deletedTeamNotification.status }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+
+            <div class="text-subtitle-2 font-weight-bold mb-2">Affected Students</div>
+            <v-alert
+              v-if="deletedTeamNotification.studentNotifications.length === 0"
+              type="info"
+              variant="tonal"
+              density="compact"
+              class="mb-4"
+            >
+              No students were assigned to the deleted team.
+            </v-alert>
+            <v-table v-else density="compact" class="mb-4">
+              <thead>
+                <tr>
+                  <th class="text-left">Student</th>
+                  <th class="text-left">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="student in deletedTeamNotification.studentNotifications" :key="student.email ?? student.fullName">
+                  <td>{{ student.fullName }}</td>
+                  <td>{{ student.email ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+
+            <div class="text-subtitle-2 font-weight-bold mb-2">Affected Instructors</div>
+            <v-alert
+              v-if="deletedTeamNotification.instructorNotifications.length === 0"
+              type="info"
+              variant="tonal"
+              density="compact"
+            >
+              No instructors were assigned to the deleted team.
+            </v-alert>
+            <v-table v-else density="compact">
+              <thead>
+                <tr>
+                  <th class="text-left">Instructor</th>
+                  <th class="text-left">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="instructor in deletedTeamNotification.instructorNotifications" :key="instructor.fullName">
+                  <td>{{ instructor.fullName }}</td>
+                  <td>{{ instructor.email ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <v-row class="mb-4">
       <v-col cols="12" md="4">
         <v-text-field
@@ -234,12 +317,14 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { findSections } from '@/features/section/services/sectionService'
 import { useUserInfoStore } from '@/stores/userInfo'
+import { useTeamNotificationsStore } from '../stores/teamNotifications'
 import { createTeam, findTeams } from '../services/teamService'
 import type { SectionSummary } from '@/features/section/services/sectionTypes'
 import type { CreateTeamRequest, FindTeamsParams, TeamSummary } from '../services/teamTypes'
 
 const router = useRouter()
 const userInfoStore = useUserInfoStore()
+const teamNotificationsStore = useTeamNotificationsStore()
 const teams = ref<TeamSummary[]>([])
 const loading = ref(false)
 const filters = ref<FindTeamsParams>({
@@ -265,6 +350,7 @@ const errors = ref<{ sectionId?: string; teamName?: string; teamWebsiteUrl?: str
 const snackbar = ref({ show: false, message: '', color: 'success' })
 
 const isAdmin = computed(() => userInfoStore.isAdmin)
+const deletedTeamNotification = computed(() => teamNotificationsStore.deletedTeamNotification)
 
 const previewPayload = computed<CreateTeamRequest>(() => ({
   sectionId: form.value.sectionId ?? 0,
@@ -277,7 +363,12 @@ const selectedSectionName = computed(() => {
   return sections.value.find((section) => section.sectionId === form.value.sectionId)?.sectionName ?? '—'
 })
 
-onMounted(() => search())
+onMounted(async () => {
+  if (deletedTeamNotification.value) {
+    snackbar.value = { show: true, message: 'Team deleted successfully.', color: 'success' }
+  }
+  await search()
+})
 
 async function search() {
   loading.value = true
@@ -303,6 +394,10 @@ function clearFilters() {
 
 function viewTeam(teamId: number) {
   router.push({ name: 'team-detail', params: { id: teamId } })
+}
+
+function dismissDeletedTeamNotification() {
+  teamNotificationsStore.clearDeletedTeamNotification()
 }
 
 function openAssignmentsPage() {

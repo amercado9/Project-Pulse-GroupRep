@@ -58,6 +58,13 @@ public class TeamController {
         return Result.success("Team updated successfully.", teamService.updateTeam(id, request));
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<Void> deleteTeam(@PathVariable Long id) {
+        teamService.deleteTeam(id);
+        return Result.success("Team deleted successfully.", null);
+    }
+
     @DeleteMapping("/{teamId}/students/{studentId}")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<TeamDetail> removeStudentFromTeam(@PathVariable Long teamId, @PathVariable Long studentId) {

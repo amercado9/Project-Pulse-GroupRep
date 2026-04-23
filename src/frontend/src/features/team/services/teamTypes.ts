@@ -27,6 +27,20 @@ export interface TeamMemberDetail {
   email: string
 }
 
+export interface TeamNotificationRecipient {
+  fullName: string
+  email?: string
+}
+
+export interface TeamDeletionNotification {
+  teamId: number
+  teamName: string
+  sectionName: string
+  studentNotifications: TeamNotificationRecipient[]
+  instructorNotifications: TeamNotificationRecipient[]
+  status: string
+}
+
 export interface CreateTeamRequest {
   sectionId: number
   teamName: string

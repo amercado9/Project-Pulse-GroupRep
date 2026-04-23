@@ -375,6 +375,53 @@ class TeamControllerIntegrationTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void should_DeleteTeamWrappedInResult_When_AdminRequestsDelete() throws Exception {
+        mockMvc.perform(delete("/api/v1/teams/10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.code").value(200))
+            .andExpect(jsonPath("$.message").value("Team deleted successfully."))
+            .andExpect(jsonPath("$.data").isEmpty());
+
+        verify(teamService).deleteTeam(10L);
+    }
+
+    @Test
+    @WithMockUser(roles = "INSTRUCTOR")
+    void should_ReturnForbidden_When_InstructorRequestsTeamDelete() throws Exception {
+        mockMvc.perform(delete("/api/v1/teams/10"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void should_ReturnForbidden_When_StudentRequestsTeamDelete() throws Exception {
+        mockMvc.perform(delete("/api/v1/teams/10"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void should_ReturnUnauthorized_When_UnauthenticatedRequestDeletesTeam() throws Exception {
+        mockMvc.perform(delete("/api/v1/teams/10"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnNotFound_When_DeletedTeamDoesNotExist() throws Exception {
+        org.mockito.Mockito.doThrow(new TeamNotFoundException(999L))
+            .when(teamService)
+            .deleteTeam(999L);
+
+        mockMvc.perform(delete("/api/v1/teams/999"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.flag").value(false))
+            .andExpect(jsonPath("$.code").value(404))
+            .andExpect(jsonPath("$.message").value("No team found with id: 999"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void should_RemoveStudentFromTeam_When_AdminRequestsRemoval() throws Exception {
         when(teamService.removeStudentFromTeam(10L, 100L))
             .thenReturn(new TeamDetail(
