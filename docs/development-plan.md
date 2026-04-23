@@ -68,11 +68,11 @@ Modules: `team`, `activity`, `evaluation`
 
 | UC | Description | Status |
 |----|-------------|--------|
-| UC-7 | Find senior design teams | Not started |
-| UC-8 | View a senior design team | Not started |
-| UC-9 | Create a senior design team | Not started |
-| UC-10 | Edit a senior design team | Not started |
-| UC-12 | Assign students to senior design teams | Not started |
+| UC-7 | Find senior design teams | Done |
+| UC-8 | View a senior design team | Done |
+| UC-9 | Create a senior design team | Done |
+| UC-10 | Edit a senior design team | Done |
+| UC-12 | Assign students to senior design teams | Done |
 | UC-13 | Remove a student from a senior design team | Not started |
 | UC-14 | Delete a senior design team | Not started |
 | UC-19 | Assign instructors to senior design teams | Not started |
