@@ -1108,7 +1108,7 @@ async function openWarDialog() {
         const previousWeek = getPreviousIsoWeek()
         warSelectedWeek.value = activeWeeks.value.includes(previousWeek)
           ? previousWeek
-          : activeWeeks.value[activeWeeks.value.length - 1]
+          : activeWeeks.value[activeWeeks.value.length - 1] as string
       }
     }
   } catch {
