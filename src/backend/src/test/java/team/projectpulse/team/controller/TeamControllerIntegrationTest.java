@@ -2,13 +2,15 @@ package team.projectpulse.team.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import team.projectpulse.config.ControllerTestSecurityConfig;
+import team.projectpulse.config.SecurityConfig;
 import team.projectpulse.section.domain.SectionNotFoundException;
 import team.projectpulse.team.domain.InstructorNotFoundException;
 import team.projectpulse.team.domain.InvalidTeamException;
@@ -36,8 +38,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(controllers = TeamController.class)
+@Import({TeamExceptionHandler.class, SecurityConfig.class, ControllerTestSecurityConfig.class})
 @ActiveProfiles("test")
 class TeamControllerIntegrationTest {
 

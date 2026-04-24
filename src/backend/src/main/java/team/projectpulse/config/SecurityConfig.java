@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/join").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/forget-password/**").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/auth/reset-password").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )

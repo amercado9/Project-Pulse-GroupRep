@@ -2,8 +2,8 @@ package team.projectpulse.activity.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -17,6 +17,8 @@ import team.projectpulse.activity.dto.ActivityDetail;
 import team.projectpulse.activity.dto.ActivityWeekOption;
 import team.projectpulse.activity.dto.ActivityWorkspace;
 import team.projectpulse.activity.service.ActivityService;
+import team.projectpulse.config.ControllerTestSecurityConfig;
+import team.projectpulse.config.SecurityConfig;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,8 +33,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(controllers = ActivityController.class)
+@Import({ActivityExceptionHandler.class, SecurityConfig.class, ControllerTestSecurityConfig.class})
 @ActiveProfiles("test")
 class ActivityControllerIntegrationTest {
 

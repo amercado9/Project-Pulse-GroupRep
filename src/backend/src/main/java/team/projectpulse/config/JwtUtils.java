@@ -7,6 +7,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +16,9 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
@@ -68,6 +71,22 @@ public class JwtUtils {
             return SignedJWT.parse(token).getJWTClaimsSet().getSubject();
         } catch (ParseException e) {
             return null;
+        }
+    }
+
+    public Collection<? extends GrantedAuthority> extractAuthorities(String token) {
+        try {
+            Object rolesClaim = SignedJWT.parse(token).getJWTClaimsSet().getClaim("roles");
+            if (!(rolesClaim instanceof String roles) || roles.isBlank()) {
+                return List.of();
+            }
+
+            return Arrays.stream(roles.split("\\s+"))
+                .filter(role -> !role.isBlank())
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
+        } catch (ParseException e) {
+            return List.of();
         }
     }
 }
