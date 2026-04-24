@@ -145,6 +145,17 @@ class TeamRepositoryIntegrationTest {
         assertEquals(List.of("Noah"), teams.get(1).getInstructors().stream().map(User::getFirstName).toList());
     }
 
+    @Test
+    void should_ReturnAssignedTeamWithSection_When_FindingByStudentId() {
+        SeededData data = seedTeams();
+
+        Optional<Team> teamOptional = teamRepository.findByStudentIdWithSection(data.liamId());
+
+        assertTrue(teamOptional.isPresent());
+        assertEquals("Pulse Analytics", teamOptional.get().getTeamName());
+        assertEquals("Spring 2026 - Section A", teamOptional.get().getSection().getSectionName());
+    }
+
     private SeededData seedTeams() {
         Section sectionA = new Section();
         sectionA.setSectionName("Spring 2026 - Section A");
@@ -173,7 +184,7 @@ class TeamRepositoryIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        return new SeededData(sectionA.getSectionId(), "Review Board", "Pulse Analytics", "Gamma Studio", pulse.getTeamId(), review.getTeamId());
+        return new SeededData(sectionA.getSectionId(), "Review Board", "Pulse Analytics", "Gamma Studio", pulse.getTeamId(), review.getTeamId(), liam.getId());
     }
 
     private User persistUser(String firstName, String lastName, String email, String roles) {
@@ -200,5 +211,13 @@ class TeamRepositoryIntegrationTest {
         return team;
     }
 
-    private record SeededData(Long sectionAId, String teamBravo, String teamAlpha, String teamGamma, Long pulseAnalyticsId, Long reviewBoardId) {}
+    private record SeededData(
+        Long sectionAId,
+        String teamBravo,
+        String teamAlpha,
+        String teamGamma,
+        Long pulseAnalyticsId,
+        Long reviewBoardId,
+        Long liamId
+    ) {}
 }

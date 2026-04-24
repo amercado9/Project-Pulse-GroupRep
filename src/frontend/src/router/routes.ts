@@ -47,6 +47,18 @@ export const routes = [
         name: 'home',
         meta: { title: 'Home', icon: 'mdi-home', isMenuItem: true, requiresAuth: true }
       },
+      {
+        path: '/war',
+        component: () => import('@/features/activity/pages/WarActivities.vue'),
+        name: 'war-activities',
+        meta: {
+          title: 'WAR',
+          icon: 'mdi-clipboard-text-clock-outline',
+          isMenuItem: true,
+          requiresAuth: true,
+          roles: ['student']
+        }
+      },
 
       // ── Sections ─────────────────────────────────────────────────────────
       {
