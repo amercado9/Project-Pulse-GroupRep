@@ -97,7 +97,7 @@ export const routes = [
         path: '/teams/:id',
         component: () => import('@/features/team/pages/TeamDetail.vue'),
         name: 'team-detail',
-        meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
+        meta: { requiresAuth: true, roles: ['admin', 'instructor', 'student'] }
       },
 
       // ── Rubrics ──────────────────────────────────────────────────────────
