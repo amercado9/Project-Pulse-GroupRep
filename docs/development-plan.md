@@ -78,7 +78,7 @@ Modules: `team`, `activity`, `evaluation`
 | UC-19 | Assign instructors to senior design teams | Done |
 | UC-20 | Remove an instructor from a senior design team | Done |
 | UC-28 | Submit peer evaluation for the previous week | Done |
-| UC-29 | View own peer evaluation report | Not started |
+| UC-29 | View own peer evaluation report | Done |
 
 ---
 
