@@ -71,6 +71,18 @@ export const routes = [
           roles: ['student']
         }
       },
+      {
+        path: '/peer-evaluation-report',
+        component: () => import('@/features/report/pages/MyPeerEvaluationReport.vue'),
+        name: 'peer-evaluation-report',
+        meta: {
+          title: 'My Peer Report',
+          icon: 'mdi-file-chart-outline',
+          isMenuItem: true,
+          requiresAuth: true,
+          roles: ['student']
+        }
+      },
 
       // ── Sections ─────────────────────────────────────────────────────────
       {

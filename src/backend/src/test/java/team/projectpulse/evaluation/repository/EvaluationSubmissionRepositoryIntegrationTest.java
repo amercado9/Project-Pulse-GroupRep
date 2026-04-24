@@ -116,6 +116,22 @@ class EvaluationSubmissionRepositoryIntegrationTest {
         assertEquals(2, managedSubmission.getEntries().size());
     }
 
+    @Test
+    void should_FetchReceivedEntriesByEvaluateeAndWeek_When_QueryingReportData() {
+        SeededData data = seedSubmission();
+
+        List<EvaluationEntry> entries = evaluationSubmissionRepository.findEntriesByEvaluateeStudentIdAndWeek(
+            data.teammate().getId(),
+            "2026-W16"
+        );
+
+        assertEquals(1, entries.size());
+        assertEquals(data.evaluator().getId(), entries.getFirst().getSubmission().getEvaluatorStudent().getId());
+        assertEquals("Great teammate", entries.getFirst().getPublicComment());
+        assertEquals("Reliable", entries.getFirst().getPrivateComment());
+        assertEquals(2, entries.getFirst().getScores().size());
+    }
+
     private SeededData seedSubmission() {
         Criterion participation = new Criterion();
         participation.setCriterion("Participation");

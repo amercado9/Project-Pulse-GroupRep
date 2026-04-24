@@ -2,6 +2,7 @@ package team.projectpulse.config;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -14,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @TestConfiguration
+@EnableMethodSecurity
 public class ControllerTestSecurityConfig {
 
     @Bean

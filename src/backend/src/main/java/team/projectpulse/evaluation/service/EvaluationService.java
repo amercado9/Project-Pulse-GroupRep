@@ -23,6 +23,7 @@ import team.projectpulse.rubric.repository.RubricRepository;
 import team.projectpulse.section.domain.Section;
 import team.projectpulse.team.domain.Team;
 import team.projectpulse.team.repository.TeamRepository;
+import team.projectpulse.system.IsoWeekUtils;
 import team.projectpulse.user.domain.User;
 import team.projectpulse.user.repository.UserRepository;
 
@@ -32,8 +33,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -48,8 +47,6 @@ import java.util.Set;
 public class EvaluationService {
 
     private static final int MAX_COMMENT_LENGTH = 2000;
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MM-dd-yyyy");
-    private static final WeekFields ISO = WeekFields.ISO;
 
     private final EvaluationSubmissionRepository evaluationSubmissionRepository;
     private final UserRepository userRepository;
@@ -117,8 +114,8 @@ public class EvaluationService {
             .orElse(baseTeam);
 
         LocalDate today = LocalDate.now(clock);
-        String currentWeek = toIsoWeek(today);
-        String previousWeek = toIsoWeek(today.minusWeeks(1));
+        String currentWeek = IsoWeekUtils.toIsoWeek(today);
+        String previousWeek = IsoWeekUtils.toIsoWeek(today.minusWeeks(1));
         LocalDateTime dueAt = resolveDueAt(section, today);
 
         if (!isActiveWeek(section, currentWeek)) {
@@ -128,8 +125,8 @@ public class EvaluationService {
                 team.getTeamId(),
                 team.getTeamName(),
                 previousWeek,
-                formatWeekLabel(previousWeek),
-                formatWeekRangeLabel(previousWeek),
+                IsoWeekUtils.formatWeekLabel(previousWeek),
+                IsoWeekUtils.formatWeekRangeLabel(previousWeek),
                 "Peer evaluations can only be submitted during active weeks."
             );
         }
@@ -141,8 +138,8 @@ public class EvaluationService {
                 team.getTeamId(),
                 team.getTeamName(),
                 previousWeek,
-                formatWeekLabel(previousWeek),
-                formatWeekRangeLabel(previousWeek),
+                IsoWeekUtils.formatWeekLabel(previousWeek),
+                IsoWeekUtils.formatWeekRangeLabel(previousWeek),
                 "The previous week is not an active week for peer evaluations."
             );
         }
@@ -156,8 +153,8 @@ public class EvaluationService {
                 team.getTeamId(),
                 team.getTeamName(),
                 previousWeek,
-                formatWeekLabel(previousWeek),
-                formatWeekRangeLabel(previousWeek),
+                IsoWeekUtils.formatWeekLabel(previousWeek),
+                IsoWeekUtils.formatWeekRangeLabel(previousWeek),
                 "This section does not have a peer evaluation rubric configured."
             );
         }
@@ -177,8 +174,8 @@ public class EvaluationService {
                 team.getTeamId(),
                 team.getTeamName(),
                 previousWeek,
-                formatWeekLabel(previousWeek),
-                formatWeekRangeLabel(previousWeek),
+                IsoWeekUtils.formatWeekLabel(previousWeek),
+                IsoWeekUtils.formatWeekRangeLabel(previousWeek),
                 null,
                 false,
                 false,
@@ -197,8 +194,8 @@ public class EvaluationService {
             team.getTeamId(),
             team.getTeamName(),
             previousWeek,
-            formatWeekLabel(previousWeek),
-            formatWeekRangeLabel(previousWeek),
+            IsoWeekUtils.formatWeekLabel(previousWeek),
+            IsoWeekUtils.formatWeekRangeLabel(previousWeek),
             submission == null ? null : submission.getSubmissionId(),
             submission != null,
             beforeOrAtDeadline,
@@ -290,8 +287,8 @@ public class EvaluationService {
             .orElse(baseTeam);
 
         LocalDate today = LocalDate.now(clock);
-        String currentWeek = toIsoWeek(today);
-        String previousWeek = toIsoWeek(today.minusWeeks(1));
+        String currentWeek = IsoWeekUtils.toIsoWeek(today);
+        String previousWeek = IsoWeekUtils.toIsoWeek(today.minusWeeks(1));
         LocalDateTime dueAt = resolveDueAt(section, today);
 
         if (!isActiveWeek(section, currentWeek)) {
@@ -562,11 +559,11 @@ public class EvaluationService {
             return section.getActiveWeeks() == null ? List.of() : new ArrayList<>(section.getActiveWeeks());
         }
 
-        LocalDate cursor = toMonday(section.getStartDate());
-        LocalDate end = toMonday(section.getEndDate());
+        LocalDate cursor = IsoWeekUtils.toMonday(section.getStartDate());
+        LocalDate end = IsoWeekUtils.toMonday(section.getEndDate());
         List<String> weeks = new ArrayList<>();
         while (!cursor.isAfter(end)) {
-            weeks.add(toIsoWeek(cursor));
+            weeks.add(IsoWeekUtils.toIsoWeek(cursor));
             cursor = cursor.plusWeeks(1);
         }
         return weeks;
@@ -587,7 +584,7 @@ public class EvaluationService {
             throw new InvalidPeerEvaluationException("Peer evaluation due time is not configured correctly for this section.");
         }
 
-        LocalDate weekStart = toMonday(today);
+        LocalDate weekStart = IsoWeekUtils.toMonday(today);
         return LocalDateTime.of(weekStart.with(dueDay), dueTime);
     }
 
@@ -599,39 +596,6 @@ public class EvaluationService {
 
     private String fullName(User user) {
         return user.getFirstName() + " " + user.getLastName();
-    }
-
-    private LocalDate toMonday(LocalDate date) {
-        return date.with(DayOfWeek.MONDAY);
-    }
-
-    private String toIsoWeek(LocalDate date) {
-        int weekYear = date.get(ISO.weekBasedYear());
-        int weekNumber = date.get(ISO.weekOfWeekBasedYear());
-        return "%d-W%02d".formatted(weekYear, weekNumber);
-    }
-
-    private String formatWeekLabel(String isoWeek) {
-        String[] parts = isoWeek.split("-W");
-        return "Week " + Integer.parseInt(parts[1]) + " (" + parts[0] + ")";
-    }
-
-    private String formatWeekRangeLabel(String isoWeek) {
-        LocalDate start = parseIsoWeekStart(isoWeek);
-        LocalDate end = start.plusDays(6);
-        return DATE_FORMAT.format(start) + " -- " + DATE_FORMAT.format(end);
-    }
-
-    private LocalDate parseIsoWeekStart(String isoWeek) {
-        if (isoWeek == null || !isoWeek.matches("\\d{4}-W\\d{2}")) {
-            throw new InvalidPeerEvaluationException("Invalid ISO week format.");
-        }
-        String[] parts = isoWeek.split("-W");
-        int year = Integer.parseInt(parts[0]);
-        int week = Integer.parseInt(parts[1]);
-        return LocalDate.of(year, 1, 4)
-            .with(ISO.weekOfWeekBasedYear(), week)
-            .with(ISO.dayOfWeek(), 1);
     }
 
     private record SubmissionContext(

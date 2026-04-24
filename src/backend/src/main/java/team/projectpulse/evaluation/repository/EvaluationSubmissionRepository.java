@@ -56,4 +56,37 @@ public interface EvaluationSubmissionRepository extends JpaRepository<Evaluation
         where entry.submission.submissionId = :submissionId
         """)
     java.util.List<team.projectpulse.evaluation.domain.EvaluationEntry> loadScores(@Param("submissionId") Long submissionId);
+
+    @Query("""
+        select distinct entry from EvaluationEntry entry
+        join fetch entry.submission submission
+        join fetch submission.team team
+        join fetch team.section section
+        join fetch submission.evaluatorStudent evaluator
+        join fetch entry.evaluateeStudent evaluatee
+        where evaluatee.id = :evaluateeStudentId
+          and submission.week = :week
+        """)
+    java.util.List<team.projectpulse.evaluation.domain.EvaluationEntry> findReceivedEntriesByEvaluateeStudentIdAndWeek(
+        @Param("evaluateeStudentId") Long evaluateeStudentId,
+        @Param("week") String week
+    );
+
+    @Query("""
+        select distinct entry from EvaluationEntry entry
+        left join fetch entry.scores score
+        left join fetch score.criterion criterion
+        where entry.entryId in :entryIds
+        """)
+    java.util.List<team.projectpulse.evaluation.domain.EvaluationEntry> loadScoresByEntryIds(@Param("entryIds") java.util.List<Long> entryIds);
+
+    default java.util.List<team.projectpulse.evaluation.domain.EvaluationEntry> findEntriesByEvaluateeStudentIdAndWeek(Long evaluateeStudentId, String week) {
+        java.util.List<team.projectpulse.evaluation.domain.EvaluationEntry> entries =
+            findReceivedEntriesByEvaluateeStudentIdAndWeek(evaluateeStudentId, week);
+        if (entries.isEmpty()) {
+            return entries;
+        }
+        loadScoresByEntryIds(entries.stream().map(team.projectpulse.evaluation.domain.EvaluationEntry::getEntryId).toList());
+        return entries;
+    }
 }

@@ -1,19 +1,38 @@
 package team.projectpulse.report.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import team.projectpulse.activity.domain.Activity;
 import team.projectpulse.activity.repository.ActivityRepository;
+import team.projectpulse.evaluation.domain.EvaluationEntry;
+import team.projectpulse.evaluation.domain.EvaluationScore;
+import team.projectpulse.evaluation.repository.EvaluationSubmissionRepository;
 import team.projectpulse.report.dto.StudentWarReport;
+import team.projectpulse.report.dto.ReportWeekOption;
+import team.projectpulse.report.dto.StudentPeerEvaluationCriterionAverageDto;
+import team.projectpulse.report.dto.StudentPeerEvaluationReportResponse;
 import team.projectpulse.report.dto.TeamWarReportResponse;
 import team.projectpulse.report.dto.WarReportRow;
+import team.projectpulse.report.domain.InvalidPeerEvaluationReportException;
+import team.projectpulse.rubric.domain.Criterion;
+import team.projectpulse.section.domain.Section;
 import team.projectpulse.team.domain.InvalidTeamException;
 import team.projectpulse.team.domain.Team;
 import team.projectpulse.team.repository.TeamRepository;
+import team.projectpulse.system.IsoWeekUtils;
 import team.projectpulse.user.domain.User;
+import team.projectpulse.user.repository.UserRepository;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,10 +40,32 @@ public class ReportService {
 
     private final TeamRepository teamRepository;
     private final ActivityRepository activityRepository;
+    private final EvaluationSubmissionRepository evaluationSubmissionRepository;
+    private final UserRepository userRepository;
+    private final Clock clock;
 
-    public ReportService(TeamRepository teamRepository, ActivityRepository activityRepository) {
+    @Autowired
+    public ReportService(
+        TeamRepository teamRepository,
+        ActivityRepository activityRepository,
+        EvaluationSubmissionRepository evaluationSubmissionRepository,
+        UserRepository userRepository
+    ) {
+        this(teamRepository, activityRepository, evaluationSubmissionRepository, userRepository, Clock.systemDefaultZone());
+    }
+
+    ReportService(
+        TeamRepository teamRepository,
+        ActivityRepository activityRepository,
+        EvaluationSubmissionRepository evaluationSubmissionRepository,
+        UserRepository userRepository,
+        Clock clock
+    ) {
         this.teamRepository = teamRepository;
         this.activityRepository = activityRepository;
+        this.evaluationSubmissionRepository = evaluationSubmissionRepository;
+        this.userRepository = userRepository;
+        this.clock = clock;
     }
 
     public TeamWarReportResponse generateTeamWarReport(Long teamId, String week) {
@@ -66,5 +107,208 @@ public class ReportService {
                 .toList();
 
         return new TeamWarReportResponse(team.getTeamId(), team.getTeamName(), week, studentReports);
+    }
+
+    public StudentPeerEvaluationReportResponse generateOwnPeerEvaluationReport(String studentEmail, String requestedWeek) {
+        User student = requireStudent(studentEmail);
+        Section section = student.getSection();
+        if (section == null) {
+            throw new InvalidPeerEvaluationReportException("You must belong to a senior design section to view your peer evaluation report.");
+        }
+
+        List<String> availableWeeks = deriveAvailableWeeks(section);
+        if (availableWeeks.isEmpty()) {
+            throw new InvalidPeerEvaluationReportException("No active peer evaluation report weeks are available.");
+        }
+
+        String selectedWeek = resolveSelectedWeek(availableWeeks, requestedWeek);
+        List<ReportWeekOption> weekOptions = availableWeeks.stream()
+            .map(week -> new ReportWeekOption(
+                week,
+                IsoWeekUtils.formatWeekLabel(week),
+                IsoWeekUtils.formatWeekRangeLabel(week)
+            ))
+            .toList();
+
+        List<EvaluationEntry> teammateEntries = evaluationSubmissionRepository
+            .findEntriesByEvaluateeStudentIdAndWeek(student.getId(), selectedWeek)
+            .stream()
+            .filter(entry -> !Objects.equals(entry.getSubmission().getEvaluatorStudent().getId(), student.getId()))
+            .sorted(Comparator
+                .comparing((EvaluationEntry entry) -> entry.getSubmission().getEvaluatorStudent().getLastName(), String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(entry -> entry.getSubmission().getEvaluatorStudent().getFirstName(), String.CASE_INSENSITIVE_ORDER))
+            .toList();
+
+        if (teammateEntries.isEmpty()) {
+            return new StudentPeerEvaluationReportResponse(
+                section.getSectionId(),
+                section.getSectionName(),
+                null,
+                null,
+                student.getId(),
+                student.getFirstName() + " " + student.getLastName(),
+                selectedWeek,
+                IsoWeekUtils.formatWeekLabel(selectedWeek),
+                IsoWeekUtils.formatWeekRangeLabel(selectedWeek),
+                weekOptions,
+                false,
+                "No peer evaluation data is available for the selected week.",
+                List.of(),
+                List.of(),
+                null,
+                null
+            );
+        }
+
+        Team team = teammateEntries.getFirst().getSubmission().getTeam();
+        List<StudentPeerEvaluationCriterionAverageDto> criterionAverages = buildCriterionAverages(teammateEntries);
+        List<String> publicComments = teammateEntries.stream()
+            .map(EvaluationEntry::getPublicComment)
+            .filter(Objects::nonNull)
+            .map(String::trim)
+            .filter(comment -> !comment.isEmpty())
+            .toList();
+        BigDecimal overallGrade = buildOverallGrade(teammateEntries);
+        Integer maxTotalScore = criterionAverages.isEmpty()
+            ? null
+            : criterionAverages.stream().mapToInt(average -> (int) average.maxScore()).sum();
+
+        return new StudentPeerEvaluationReportResponse(
+            section.getSectionId(),
+            section.getSectionName(),
+            team.getTeamId(),
+            team.getTeamName(),
+            student.getId(),
+            student.getFirstName() + " " + student.getLastName(),
+            selectedWeek,
+            IsoWeekUtils.formatWeekLabel(selectedWeek),
+            IsoWeekUtils.formatWeekRangeLabel(selectedWeek),
+            weekOptions,
+            true,
+            null,
+            criterionAverages,
+            publicComments,
+            overallGrade,
+            maxTotalScore
+        );
+    }
+
+    private List<StudentPeerEvaluationCriterionAverageDto> buildCriterionAverages(List<EvaluationEntry> entries) {
+        Map<Long, CriterionAggregate> aggregates = new LinkedHashMap<>();
+        for (EvaluationEntry entry : entries) {
+            for (EvaluationScore score : entry.getScores()) {
+                Criterion criterion = score.getCriterion();
+                aggregates.computeIfAbsent(
+                    criterion.getCriterionId(),
+                    ignored -> new CriterionAggregate(criterion)
+                ).add(score.getScore());
+            }
+        }
+
+        return aggregates.values().stream()
+            .sorted(Comparator.comparing(aggregate -> aggregate.criterion().getCriterionId()))
+            .map(aggregate -> new StudentPeerEvaluationCriterionAverageDto(
+                aggregate.criterion().getCriterionId(),
+                aggregate.criterion().getCriterion(),
+                aggregate.criterion().getDescription(),
+                average(aggregate.total(), aggregate.count()),
+                aggregate.criterion().getMaxScore()
+            ))
+            .toList();
+    }
+
+    private BigDecimal buildOverallGrade(List<EvaluationEntry> entries) {
+        BigDecimal total = entries.stream()
+            .map(entry -> entry.getScores().stream()
+                .map(EvaluationScore::getScore)
+                .map(BigDecimal::valueOf)
+                .reduce(BigDecimal.ZERO, BigDecimal::add))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return average(total, entries.size());
+    }
+
+    private BigDecimal average(BigDecimal total, int count) {
+        return total.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP);
+    }
+
+    private User requireStudent(String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+            .orElseThrow(() -> new InvalidPeerEvaluationReportException("No student account found for the current user."));
+        if (!isStudent(student)) {
+            throw new InvalidPeerEvaluationReportException("Only students can view their peer evaluation report.");
+        }
+        return student;
+    }
+
+    private boolean isStudent(User user) {
+        String roles = user.getRoles() == null ? "" : user.getRoles().toLowerCase();
+        return List.of(roles.split("\\s+")).contains("student");
+    }
+
+    private List<String> deriveAvailableWeeks(Section section) {
+        String currentWeek = IsoWeekUtils.toIsoWeek(LocalDate.now(clock));
+        List<String> sectionWeeks = deriveSectionWeeks(section);
+        return sectionWeeks.stream()
+            .filter(week -> section.getActiveWeeks() != null && section.getActiveWeeks().contains(week))
+            .filter(week -> IsoWeekUtils.parseIsoWeekStart(week).isBefore(IsoWeekUtils.parseIsoWeekStart(currentWeek)))
+            .sorted(IsoWeekUtils.descendingComparator())
+            .toList();
+    }
+
+    private String resolveSelectedWeek(List<String> availableWeeks, String requestedWeek) {
+        if (requestedWeek != null && !requestedWeek.isBlank()) {
+            if (!availableWeeks.contains(requestedWeek)) {
+                throw new InvalidPeerEvaluationReportException("The selected week is not available for your peer evaluation report.");
+            }
+            return requestedWeek;
+        }
+
+        String previousWeek = IsoWeekUtils.toIsoWeek(LocalDate.now(clock).minusWeeks(1));
+        if (availableWeeks.contains(previousWeek)) {
+            return previousWeek;
+        }
+        return availableWeeks.getFirst();
+    }
+
+    private List<String> deriveSectionWeeks(Section section) {
+        if (section.getStartDate() == null || section.getEndDate() == null) {
+            return List.of();
+        }
+
+        LocalDate cursor = IsoWeekUtils.toMonday(section.getStartDate());
+        LocalDate end = IsoWeekUtils.toMonday(section.getEndDate());
+        List<String> weeks = new ArrayList<>();
+        while (!cursor.isAfter(end)) {
+            weeks.add(IsoWeekUtils.toIsoWeek(cursor));
+            cursor = cursor.plusWeeks(1);
+        }
+        return weeks;
+    }
+
+    private static final class CriterionAggregate {
+        private final Criterion criterion;
+        private BigDecimal total = BigDecimal.ZERO;
+        private int count = 0;
+
+        private CriterionAggregate(Criterion criterion) {
+            this.criterion = criterion;
+        }
+
+        private void add(Integer score) {
+            total = total.add(BigDecimal.valueOf(score));
+            count++;
+        }
+
+        private Criterion criterion() {
+            return criterion;
+        }
+
+        private BigDecimal total() {
+            return total;
+        }
+
+        private int count() {
+            return count;
+        }
     }
 }
