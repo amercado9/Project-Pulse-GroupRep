@@ -16,4 +16,12 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     @Query("SELECT a FROM Activity a JOIN FETCH a.student WHERE a.team.teamId = :teamId AND a.week = :week ORDER BY a.student.lastName ASC, a.student.firstName ASC")
     List<Activity> findByTeamIdAndWeek(@Param("teamId") Long teamId, @Param("week") String week);
+
+    @Query("SELECT a FROM Activity a WHERE a.student.id = :studentId AND a.team.teamId = :teamId AND a.week >= :startWeek AND a.week <= :endWeek ORDER BY a.week ASC, a.activityId ASC")
+    List<Activity> findByStudentIdAndTeamIdAndWeekRange(
+            @Param("studentId") Long studentId,
+            @Param("teamId") Long teamId,
+            @Param("startWeek") String startWeek,
+            @Param("endWeek") String endWeek
+    );
 }
