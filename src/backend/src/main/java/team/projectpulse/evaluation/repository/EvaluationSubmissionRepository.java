@@ -56,4 +56,30 @@ public interface EvaluationSubmissionRepository extends JpaRepository<Evaluation
         where entry.submission.submissionId = :submissionId
         """)
     java.util.List<team.projectpulse.evaluation.domain.EvaluationEntry> loadScores(@Param("submissionId") Long submissionId);
+
+    @Query("""
+        select distinct e from EvaluationEntry e
+        join fetch e.submission s
+        join fetch s.evaluatorStudent evaluator
+        join fetch e.evaluateeStudent evaluatee
+        left join fetch e.scores score
+        left join fetch score.criterion criterion
+        where s.team.section.sectionId = :sectionId
+          and s.week = :week
+        """)
+    java.util.List<team.projectpulse.evaluation.domain.EvaluationEntry> findEntriesWithScoresBySectionIdAndWeek(
+            @Param("sectionId") Long sectionId,
+            @Param("week") String week
+    );
+
+    @Query("""
+        select distinct s.evaluatorStudent.id
+        from EvaluationSubmission s
+        where s.team.section.sectionId = :sectionId
+          and s.week = :week
+        """)
+    java.util.List<Long> findSubmitterIdsBySectionIdAndWeek(
+            @Param("sectionId") Long sectionId,
+            @Param("week") String week
+    );
 }
