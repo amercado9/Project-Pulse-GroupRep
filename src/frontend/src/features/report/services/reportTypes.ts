@@ -58,3 +58,36 @@ export interface SectionPeerEvalReportResponse {
   week: string
   studentReports: StudentPeerEvalReport[]
 }
+
+export interface ReportWeekOption {
+  week: string
+  label: string
+  rangeLabel: string
+}
+
+export interface StudentPeerEvaluationCriterionAverage {
+  criterionId: number
+  criterion: string
+  description: string | null
+  averageScore: number
+  maxScore: number
+}
+
+export interface StudentPeerEvaluationReportResponse {
+  sectionId: number | null
+  sectionName: string | null
+  teamId: number | null
+  teamName: string | null
+  studentId: number
+  studentName: string
+  selectedWeek: string
+  selectedWeekLabel: string
+  selectedWeekRangeLabel: string
+  availableWeeks: ReportWeekOption[]
+  reportAvailable: boolean
+  availabilityMessage: string | null
+  criterionAverages: StudentPeerEvaluationCriterionAverage[]
+  publicComments: string[]
+  overallGrade: number | null
+  maxTotalScore: number | null
+}

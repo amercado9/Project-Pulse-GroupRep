@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar flat border="b" color="white" height="56">
+  <v-app-bar flat border="b" color="white" height="64" class="top-nav">
     <v-app-bar-nav-icon @click="toggleCollapse" />
 
     <v-breadcrumbs :items="breadcrumbItems" density="compact" class="ml-0 px-0">
@@ -137,6 +137,13 @@ function confirmLogout() {
 </script>
 
 <style lang="scss" scoped>
+.top-nav {
+  :deep(.v-toolbar__content) {
+    min-height: 64px !important;
+    padding-inline: 20px 16px;
+  }
+}
+
 .user-btn {
   text-transform: none;
   letter-spacing: 0;
