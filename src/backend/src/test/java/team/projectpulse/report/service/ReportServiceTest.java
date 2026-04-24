@@ -191,8 +191,9 @@ class ReportServiceTest {
         return new ReportService(
             teamRepository,
             activityRepository,
-            evaluationSubmissionRepository,
             userRepository,
+            null,
+            evaluationSubmissionRepository,
             clock
         );
     }
