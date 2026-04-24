@@ -33,3 +33,28 @@ export interface StudentWarReportResponse {
   endWeek: string
   weekReports: StudentWeekWarReport[]
 }
+
+export interface EvalReportEntry {
+  evaluatorName: string
+  totalScore: number
+  maxScore: number
+  publicComment: string | null
+  privateComment: string | null
+}
+
+export interface StudentPeerEvalReport {
+  studentId: number
+  studentName: string
+  teamName: string
+  submitted: boolean
+  grade: number | null
+  maxGrade: number | null
+  evaluations: EvalReportEntry[]
+}
+
+export interface SectionPeerEvalReportResponse {
+  sectionId: number
+  sectionName: string
+  week: string
+  studentReports: StudentPeerEvalReport[]
+}
