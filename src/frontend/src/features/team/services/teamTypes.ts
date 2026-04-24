@@ -18,11 +18,18 @@ export interface TeamDetail {
   teamWebsiteUrl: string | null
   teamMembers: TeamMemberDetail[]
   teamMemberNames: string[]
+  teamInstructors: TeamInstructorDetail[]
   instructorNames: string[]
 }
 
 export interface TeamMemberDetail {
   studentId: number
+  fullName: string
+  email: string
+}
+
+export interface TeamInstructorDetail {
+  instructorId: number
   fullName: string
   email: string
 }

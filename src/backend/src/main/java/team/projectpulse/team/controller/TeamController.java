@@ -73,4 +73,13 @@ public class TeamController {
             teamService.removeStudentFromTeam(teamId, studentId)
         );
     }
+
+    @DeleteMapping("/{teamId}/instructors/{instructorId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<TeamDetail> removeInstructorFromTeam(@PathVariable Long teamId, @PathVariable Long instructorId) {
+        return Result.success(
+            "Instructor removed from team successfully.",
+            teamService.removeInstructorFromTeam(teamId, instructorId)
+        );
+    }
 }

@@ -3,14 +3,17 @@ package team.projectpulse.team.service;
 import org.springframework.stereotype.Service;
 import team.projectpulse.section.domain.Section;
 import team.projectpulse.section.repository.SectionRepository;
+import team.projectpulse.team.domain.InstructorNotFoundException;
 import team.projectpulse.team.domain.Team;
 import team.projectpulse.team.domain.InvalidTeamException;
+import team.projectpulse.team.domain.InvalidTeamInstructorAssignmentException;
 import team.projectpulse.team.domain.InvalidTeamStudentAssignmentException;
 import team.projectpulse.team.domain.StudentNotFoundException;
 import team.projectpulse.team.domain.TeamAlreadyExistsException;
 import team.projectpulse.team.domain.TeamNotFoundException;
 import team.projectpulse.team.dto.CreateTeamRequest;
 import team.projectpulse.team.dto.TeamDetail;
+import team.projectpulse.team.dto.TeamInstructorDetail;
 import team.projectpulse.team.dto.TeamMemberDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.dto.UpdateTeamRequest;
@@ -141,6 +144,28 @@ public class TeamService {
         return toDetail(teamRepository.save(team));
     }
 
+    public TeamDetail removeInstructorFromTeam(Long teamId, Long instructorId) {
+        Team team = teamRepository.findDetailById(teamId)
+            .orElseThrow(() -> new TeamNotFoundException(teamId));
+
+        User instructor = userRepository.findById(instructorId)
+            .filter(this::isInstructor)
+            .orElseThrow(() -> new InstructorNotFoundException(instructorId));
+
+        boolean assignedToTeam = team.getInstructors().stream()
+            .anyMatch(teamInstructor -> teamInstructor.getId().equals(instructor.getId()));
+
+        if (!assignedToTeam) {
+            throw new InvalidTeamInstructorAssignmentException(
+                "Instructor " + instructorId + " is not assigned to team " + teamId + "."
+            );
+        }
+
+        team.getInstructors().removeIf(teamInstructor -> teamInstructor.getId().equals(instructor.getId()));
+
+        return toDetail(teamRepository.save(team));
+    }
+
     private TeamSummary toSummary(Team team) {
         return new TeamSummary(
             team.getTeamId(),
@@ -164,6 +189,7 @@ public class TeamService {
             team.getTeamWebsiteUrl(),
             toSortedTeamMembers(team.getStudents()),
             toSortedNames(team.getStudents()),
+            toSortedTeamInstructors(team.getInstructors()),
             toSortedNames(team.getInstructors())
         );
     }
@@ -177,6 +203,15 @@ public class TeamService {
             .toList();
     }
 
+    private List<TeamInstructorDetail> toSortedTeamInstructors(Iterable<User> users) {
+        return StreamSupport.stream(users.spliterator(), false)
+            .sorted(Comparator
+                .comparing(this::toDisplayName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(User::getEmail, String.CASE_INSENSITIVE_ORDER))
+            .map(user -> new TeamInstructorDetail(user.getId(), toDisplayName(user), user.getEmail()))
+            .toList();
+    }
+
     private String toDisplayName(User user) {
         return (user.getFirstName() + " " + user.getLastName()).trim();
     }
@@ -186,6 +221,11 @@ public class TeamService {
             .map(this::toDisplayName)
             .sorted(String.CASE_INSENSITIVE_ORDER)
             .toList();
+    }
+
+    private boolean isInstructor(User user) {
+        String roles = user.getRoles() == null ? "" : user.getRoles().toLowerCase();
+        return List.of(roles.split("\\s+")).contains("instructor");
     }
 
     private String normalize(String value) {
