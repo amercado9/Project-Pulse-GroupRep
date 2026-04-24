@@ -22,6 +22,9 @@
           </div>
         </v-col>
         <v-col cols="auto">
+          <v-btn variant="outlined" prepend-icon="mdi-file-chart" @click="openWarDialog">WAR Report</v-btn>
+        </v-col>
+        <v-col cols="auto">
           <v-chip color="primary" variant="tonal">
             {{ team.sectionName }}
           </v-chip>
@@ -627,6 +630,86 @@
       </v-card>
     </v-dialog>
 
+    <!-- WAR Report Dialog -->
+    <v-dialog v-model="warDialog" max-width="900" scrollable>
+      <v-card rounded="lg">
+        <v-card-title class="pa-6 pb-2">
+          <span v-if="warStep === 1">Generate WAR Report</span>
+          <span v-else>WAR Report — {{ warSelectedWeek }}</span>
+        </v-card-title>
+
+        <v-card-text class="px-6">
+          <!-- Step 1: Pick a week -->
+          <template v-if="warStep === 1">
+            <p class="text-medium-emphasis mb-4">Select the active week to generate the WAR report for <strong>{{ team?.teamName }}</strong>.</p>
+            <v-select
+              v-model="warSelectedWeek"
+              :items="activeWeeks"
+              label="Active Week"
+              variant="outlined"
+              density="comfortable"
+              :rules="[(v) => !!v || 'Please select a week.']"
+            />
+            <v-alert v-if="!activeWeeks.length" type="warning" variant="tonal" class="mt-2">
+              No active weeks configured for this section.
+            </v-alert>
+          </template>
+
+          <!-- Step 2: Report -->
+          <template v-else>
+            <template v-if="warReport && warReport.studentReports.length">
+              <div v-for="student in warReport.studentReports" :key="student.studentId" class="mb-6">
+                <div class="d-flex align-center mb-2 gap-2">
+                  <span class="font-weight-bold">{{ student.studentName }}</span>
+                  <v-chip v-if="!student.submitted" color="error" size="small" variant="tonal">Did not submit</v-chip>
+                </div>
+                <template v-if="student.submitted">
+                  <v-table density="compact">
+                    <thead>
+                      <tr>
+                        <th>Activity Category</th>
+                        <th>Planned Activity</th>
+                        <th>Description</th>
+                        <th>Planned Hrs</th>
+                        <th>Actual Hrs</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, i) in student.activities" :key="i">
+                        <td>{{ row.activityCategory }}</td>
+                        <td>{{ row.plannedActivity }}</td>
+                        <td>{{ row.description ?? '—' }}</td>
+                        <td>{{ row.plannedHours ?? '—' }}</td>
+                        <td>{{ row.actualHours ?? '—' }}</td>
+                        <td>
+                          <v-chip :color="row.status === 'Done' ? 'success' : 'warning'" size="small" variant="tonal">
+                            {{ row.status }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </v-table>
+                </template>
+              </div>
+            </template>
+            <v-alert v-else type="info" variant="tonal">
+              No activity data found for week {{ warSelectedWeek }}.
+            </v-alert>
+          </template>
+        </v-card-text>
+
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="outlined" @click="closeWarDialog">Close</v-btn>
+          <v-btn v-if="warStep === 1" color="primary" :disabled="!warSelectedWeek || !activeWeeks.length" :loading="warLoading" @click="generateWarReport">
+            Generate
+          </v-btn>
+          <v-btn v-else variant="outlined" @click="warStep = 1">Back</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
       {{ snackbar.message }}
     </v-snackbar>
@@ -639,6 +722,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserInfoStore } from '@/stores/userInfo'
 import { deleteTeam, getTeam, removeInstructorFromTeam, removeStudentFromTeam, updateTeam } from '../services/teamService'
 import { useTeamNotificationsStore } from '../stores/teamNotifications'
+import { getSection } from '@/features/section/services/sectionService'
+import { getTeamWarReport } from '@/features/report/services/reportService'
 import type {
   TeamDeletionNotification,
   TeamDetail,
@@ -646,6 +731,7 @@ import type {
   TeamMemberDetail,
   UpdateTeamRequest
 } from '../services/teamTypes'
+import type { TeamWarReportResponse } from '@/features/report/services/reportTypes'
 
 interface RemovedStudentNotification {
   fullName: string
@@ -690,6 +776,13 @@ const deleteSaving = ref(false)
 const removedStudentNotification = ref<RemovedStudentNotification | null>(null)
 const removedInstructorNotification = ref<RemovedInstructorNotification | null>(null)
 const snackbar = ref({ show: false, message: '', color: 'success' })
+
+const warDialog = ref(false)
+const warStep = ref(1)
+const warLoading = ref(false)
+const warSelectedWeek = ref<string>('')
+const activeWeeks = ref<string[]>([])
+const warReport = ref<TeamWarReportResponse | null>(null)
 
 const emptyForm = () => ({
   teamName: '',
@@ -997,6 +1090,63 @@ function buildDeletedTeamNotification(currentTeam: TeamDetail): TeamDeletionNoti
 function normalizeOptional(value: string): string | null {
   const trimmed = value.trim()
   return trimmed ? trimmed : null
+}
+
+async function openWarDialog() {
+  if (!team.value) return
+  warStep.value = 1
+  warReport.value = null
+  warSelectedWeek.value = ''
+  activeWeeks.value = []
+  warDialog.value = true
+
+  try {
+    const res = await getSection(team.value.sectionId) as any
+    if (res.flag && res.data?.activeWeeks) {
+      activeWeeks.value = [...res.data.activeWeeks].sort()
+      if (activeWeeks.value.length) {
+        const previousWeek = getPreviousIsoWeek()
+        warSelectedWeek.value = activeWeeks.value.includes(previousWeek)
+          ? previousWeek
+          : activeWeeks.value[activeWeeks.value.length - 1] as string
+      }
+    }
+  } catch {
+    snackbar.value = { show: true, message: 'Failed to load section weeks.', color: 'error' }
+  }
+}
+
+function getPreviousIsoWeek(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 7)
+  const jan4 = new Date(d.getFullYear(), 0, 4)
+  const dayOfYear = Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000)
+  const weekNum = Math.ceil((dayOfYear + jan4.getDay()) / 7)
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
+}
+
+async function generateWarReport() {
+  if (!team.value || !warSelectedWeek.value) return
+  warLoading.value = true
+  try {
+    const res = await getTeamWarReport(team.value.teamId, warSelectedWeek.value) as any
+    if (res.flag) {
+      warReport.value = res.data
+      warStep.value = 2
+    } else {
+      snackbar.value = { show: true, message: res.message || 'Failed to generate report.', color: 'error' }
+    }
+  } catch {
+    snackbar.value = { show: true, message: 'An error occurred generating the report.', color: 'error' }
+  } finally {
+    warLoading.value = false
+  }
+}
+
+function closeWarDialog() {
+  warDialog.value = false
+  warStep.value = 1
+  warReport.value = null
 }
 </script>
 

@@ -10,28 +10,10 @@ import java.util.Optional;
 
 public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
-    @Query("""
-        select a from Activity a
-        join fetch a.team t
-        join fetch a.student s
-        where s.id = :studentId
-          and a.week = :week
-        order by a.activityId asc
-        """)
-    List<Activity> findAllByStudentIdAndWeekOrderByActivityIdAsc(
-        @Param("studentId") Long studentId,
-        @Param("week") String week
-    );
+    List<Activity> findAllByStudentIdAndWeekOrderByActivityIdAsc(Long studentId, String week);
 
-    @Query("""
-        select a from Activity a
-        join fetch a.team t
-        join fetch a.student s
-        where a.activityId = :activityId
-          and s.id = :studentId
-        """)
-    Optional<Activity> findByActivityIdAndStudentId(
-        @Param("activityId") Long activityId,
-        @Param("studentId") Long studentId
-    );
+    Optional<Activity> findByActivityIdAndStudentId(Long activityId, Long studentId);
+
+    @Query("SELECT a FROM Activity a JOIN FETCH a.student WHERE a.team.teamId = :teamId AND a.week = :week ORDER BY a.student.lastName ASC, a.student.firstName ASC")
+    List<Activity> findByTeamIdAndWeek(@Param("teamId") Long teamId, @Param("week") String week);
 }
