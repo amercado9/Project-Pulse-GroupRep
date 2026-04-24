@@ -82,8 +82,13 @@
                   :key="member.studentId"
                   size="small"
                   class="mr-1 mb-1"
+                  :color="(isAdmin || isInstructor) ? 'primary' : undefined"
+                  :variant="(isAdmin || isInstructor) ? 'tonal' : 'elevated'"
+                  :style="(isAdmin || isInstructor) ? 'cursor:pointer' : ''"
+                  @click="(isAdmin || isInstructor) && openStudentWarDialog(member)"
                 >
                   {{ member.fullName }}
+                  <v-tooltip v-if="isAdmin || isInstructor" activator="parent">Generate WAR Report</v-tooltip>
                 </v-chip>
               </div>
             </v-card-text>
@@ -710,6 +715,94 @@
       </v-card>
     </v-dialog>
 
+    <!-- Student WAR Report Dialog (UC-34) -->
+    <v-dialog v-model="studentWarDialog" max-width="900" persistent>
+      <v-card>
+        <v-card-title class="pa-6 pb-2">
+          <span class="text-h6">WAR Report — {{ selectedStudent?.fullName }}</span>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <template v-if="studentWarStep === 1">
+            <p class="mb-4 text-body-2">Select the week range to generate the WAR report for this student.</p>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="studentWarStartWeek"
+                  :items="activeWeeks"
+                  label="Start Week"
+                  density="compact"
+                  variant="outlined"
+                  :disabled="!activeWeeks.length"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="studentWarEndWeek"
+                  :items="activeWeeks"
+                  label="End Week"
+                  density="compact"
+                  variant="outlined"
+                  :disabled="!activeWeeks.length"
+                />
+              </v-col>
+            </v-row>
+          </template>
+
+          <template v-else>
+            <div class="text-subtitle-1 font-weight-bold mb-4">
+              {{ selectedStudent?.fullName }} — {{ studentWarReport?.startWeek }} to {{ studentWarReport?.endWeek }}
+            </div>
+            <template v-if="studentWarReport && studentWarReport.weekReports.length > 0">
+              <div v-for="weekReport in studentWarReport.weekReports" :key="weekReport.week" class="mb-6">
+                <div class="text-subtitle-2 font-weight-medium mb-2">Week {{ weekReport.week }}</div>
+                <v-table density="compact">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Planned Activity</th>
+                      <th>Description</th>
+                      <th>Planned Hrs</th>
+                      <th>Actual Hrs</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, idx) in weekReport.activities" :key="idx">
+                      <td>{{ row.activityCategory }}</td>
+                      <td>{{ row.plannedActivity }}</td>
+                      <td>{{ row.description ?? '—' }}</td>
+                      <td>{{ row.plannedHours ?? '—' }}</td>
+                      <td>{{ row.actualHours ?? '—' }}</td>
+                      <td>{{ row.status }}</td>
+                    </tr>
+                  </tbody>
+                </v-table>
+              </div>
+            </template>
+            <v-alert v-else type="info" variant="tonal">
+              No activity data found for the selected period.
+            </v-alert>
+          </template>
+        </v-card-text>
+
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="outlined" @click="closeStudentWarDialog">Close</v-btn>
+          <v-btn
+            v-if="studentWarStep === 1"
+            color="primary"
+            :disabled="!studentWarStartWeek || !studentWarEndWeek || !activeWeeks.length"
+            :loading="studentWarLoading"
+            @click="generateStudentWarReport"
+          >
+            Generate
+          </v-btn>
+          <v-btn v-else variant="outlined" @click="studentWarStep = 1">Back</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
       {{ snackbar.message }}
     </v-snackbar>
@@ -723,7 +816,7 @@ import { useUserInfoStore } from '@/stores/userInfo'
 import { deleteTeam, getTeam, removeInstructorFromTeam, removeStudentFromTeam, updateTeam } from '../services/teamService'
 import { useTeamNotificationsStore } from '../stores/teamNotifications'
 import { getSection } from '@/features/section/services/sectionService'
-import { getTeamWarReport } from '@/features/report/services/reportService'
+import { getTeamWarReport, getStudentWarReport } from '@/features/report/services/reportService'
 import type {
   TeamDeletionNotification,
   TeamDetail,
@@ -731,7 +824,7 @@ import type {
   TeamMemberDetail,
   UpdateTeamRequest
 } from '../services/teamTypes'
-import type { TeamWarReportResponse } from '@/features/report/services/reportTypes'
+import type { TeamWarReportResponse, StudentWarReportResponse } from '@/features/report/services/reportTypes'
 
 interface RemovedStudentNotification {
   fullName: string
@@ -784,6 +877,14 @@ const warSelectedWeek = ref<string>('')
 const activeWeeks = ref<string[]>([])
 const warReport = ref<TeamWarReportResponse | null>(null)
 
+const studentWarDialog = ref(false)
+const studentWarStep = ref(1)
+const studentWarLoading = ref(false)
+const studentWarStartWeek = ref<string>('')
+const studentWarEndWeek = ref<string>('')
+const selectedStudent = ref<{ studentId: number; fullName: string } | null>(null)
+const studentWarReport = ref<StudentWarReportResponse | null>(null)
+
 const emptyForm = () => ({
   teamName: '',
   teamDescription: '',
@@ -793,6 +894,7 @@ const emptyForm = () => ({
 const form = ref(emptyForm())
 
 const isAdmin = computed(() => userInfoStore.isAdmin)
+const isInstructor = computed(() => userInfoStore.isInstructor)
 
 const previewPayload = computed<UpdateTeamRequest>(() => ({
   teamName: form.value.teamName.trim(),
@@ -1147,6 +1249,62 @@ function closeWarDialog() {
   warDialog.value = false
   warStep.value = 1
   warReport.value = null
+}
+
+async function openStudentWarDialog(member: { studentId: number; fullName: string }) {
+  if (!team.value) return
+  selectedStudent.value = member
+  studentWarStep.value = 1
+  studentWarReport.value = null
+  studentWarStartWeek.value = ''
+  studentWarEndWeek.value = ''
+  studentWarDialog.value = true
+
+  if (!activeWeeks.value.length) {
+    try {
+      const res = await getSection(team.value.sectionId) as any
+      if (res.flag && res.data?.activeWeeks) {
+        activeWeeks.value = [...res.data.activeWeeks].sort()
+      }
+    } catch {
+      snackbar.value = { show: true, message: 'Failed to load section weeks.', color: 'error' }
+    }
+  }
+
+  if (activeWeeks.value.length) {
+    studentWarStartWeek.value = activeWeeks.value[0] as string
+    studentWarEndWeek.value = activeWeeks.value[activeWeeks.value.length - 1] as string
+  }
+}
+
+async function generateStudentWarReport() {
+  if (!team.value || !selectedStudent.value || !studentWarStartWeek.value || !studentWarEndWeek.value) return
+  studentWarLoading.value = true
+  try {
+    const res = await getStudentWarReport(
+      team.value.teamId,
+      selectedStudent.value.studentId,
+      studentWarStartWeek.value,
+      studentWarEndWeek.value
+    ) as any
+    if (res.flag) {
+      studentWarReport.value = res.data
+      studentWarStep.value = 2
+    } else {
+      snackbar.value = { show: true, message: res.message || 'Failed to generate report.', color: 'error' }
+    }
+  } catch {
+    snackbar.value = { show: true, message: 'An error occurred generating the report.', color: 'error' }
+  } finally {
+    studentWarLoading.value = false
+  }
+}
+
+function closeStudentWarDialog() {
+  studentWarDialog.value = false
+  studentWarStep.value = 1
+  studentWarReport.value = null
+  selectedStudent.value = null
 }
 </script>
 

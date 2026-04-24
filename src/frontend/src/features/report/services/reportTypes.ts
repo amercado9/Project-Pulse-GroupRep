@@ -20,3 +20,16 @@ export interface TeamWarReportResponse {
   week: string
   studentReports: StudentWarReport[]
 }
+
+export interface StudentWeekWarReport {
+  week: string
+  activities: WarReportRow[]
+}
+
+export interface StudentWarReportResponse {
+  studentId: number
+  studentName: string
+  startWeek: string
+  endWeek: string
+  weekReports: StudentWeekWarReport[]
+}
