@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import team.projectpulse.system.Result;
 import team.projectpulse.system.StatusCode;
+import team.projectpulse.team.domain.InstructorNotFoundException;
 import team.projectpulse.team.domain.InvalidTeamException;
 import team.projectpulse.team.domain.InvalidTeamInstructorAssignmentException;
 import team.projectpulse.team.domain.InvalidTeamStudentAssignmentException;
@@ -49,6 +50,12 @@ public class TeamExceptionHandler {
     @ExceptionHandler(StudentNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Result<Void> handleStudentNotFound(StudentNotFoundException ex) {
+        return Result.notFound(ex.getMessage());
+    }
+
+    @ExceptionHandler(InstructorNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleInstructorNotFound(InstructorNotFoundException ex) {
         return Result.notFound(ex.getMessage());
     }
 }

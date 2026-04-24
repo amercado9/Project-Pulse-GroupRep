@@ -34,6 +34,9 @@ export const deleteTeam = (id: number) =>
 export const removeStudentFromTeam = (teamId: number, studentId: number) =>
   request.delete<ApiResponse<TeamDetail>>(`${BASE}/${teamId}/students/${studentId}`)
 
+export const removeInstructorFromTeam = (teamId: number, instructorId: number) =>
+  request.delete<ApiResponse<TeamDetail>>(`${BASE}/${teamId}/instructors/${instructorId}`)
+
 export const getTeamStudentAssignmentWorkspace = (sectionId: number) =>
   request.get<ApiResponse<TeamStudentAssignmentWorkspace>>(ASSIGNMENT_BASE, { params: { sectionId } })
 

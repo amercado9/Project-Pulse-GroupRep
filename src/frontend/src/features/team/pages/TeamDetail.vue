@@ -88,21 +88,34 @@
         </v-col>
         <v-col cols="12" md="6">
           <v-card variant="outlined" class="fill-height">
-            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">Instructors</v-card-title>
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2 d-flex align-center">
+              <span>Instructors</span>
+              <v-spacer />
+              <v-btn
+                v-if="isAdmin && team.teamInstructors.length > 0"
+                size="small"
+                color="error"
+                variant="outlined"
+                prepend-icon="mdi-account-remove"
+                @click="openRemoveInstructorDialog"
+              >
+                Remove Instructor
+              </v-btn>
+            </v-card-title>
             <v-card-text>
-              <v-alert v-if="team.instructorNames.length === 0" type="info" variant="tonal" density="compact">
+              <v-alert v-if="team.teamInstructors.length === 0" type="info" variant="tonal" density="compact">
                 No instructors assigned.
               </v-alert>
               <div v-else>
                 <v-chip
-                  v-for="instructor in team.instructorNames"
-                  :key="instructor"
+                  v-for="instructor in team.teamInstructors"
+                  :key="instructor.instructorId"
                   size="small"
                   color="primary"
                   variant="tonal"
                   class="mr-1 mb-1"
                 >
-                  {{ instructor }}
+                  {{ instructor.fullName }}
                 </v-chip>
               </div>
             </v-card-text>
@@ -137,6 +150,39 @@
               <tr>
                 <th class="text-left">Status</th>
                 <td>{{ removedStudentNotification.status }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card-text>
+      </v-card>
+
+      <v-card v-if="removedInstructorNotification" variant="outlined" class="mt-4">
+        <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">Notify Instructor</v-card-title>
+        <v-card-text>
+          <div class="text-body-2 mb-3">
+            Use this summary to notify the instructor manually about the team removal.
+          </div>
+          <v-table density="compact">
+            <tbody>
+              <tr>
+                <th class="text-left">Instructor</th>
+                <td>{{ removedInstructorNotification.fullName }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Email</th>
+                <td>{{ removedInstructorNotification.email }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Previous Team</th>
+                <td>{{ removedInstructorNotification.teamName }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Section</th>
+                <td>{{ removedInstructorNotification.sectionName }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Status</th>
+                <td>{{ removedInstructorNotification.status }}</td>
               </tr>
             </tbody>
           </v-table>
@@ -332,6 +378,123 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="removeInstructorDialog" max-width="720" persistent>
+      <v-card>
+        <v-card-title class="pa-4">
+          {{ removeInstructorStep === 1 ? 'Remove Instructor' : 'Confirm Instructor Removal' }}
+        </v-card-title>
+        <v-divider />
+
+        <v-card-text v-if="removeInstructorStep === 1" class="pa-4">
+          <v-select
+            v-model="selectedInstructorId"
+            :items="team?.teamInstructors ?? []"
+            item-title="fullName"
+            item-value="instructorId"
+            label="Instructor to Remove"
+            :error-messages="removeInstructorErrors.instructorId"
+          />
+
+          <v-card v-if="selectedTeamInstructor" variant="outlined" class="mt-4">
+            <v-card-text>
+              <div class="text-caption text-medium-emphasis">Selected Instructor Email</div>
+              <div>{{ selectedTeamInstructor.email }}</div>
+            </v-card-text>
+          </v-card>
+        </v-card-text>
+
+        <v-card-text v-else class="pa-4">
+          <v-alert type="warning" variant="tonal" class="mb-4">
+            Please review the instructor removal before confirming.
+          </v-alert>
+
+          <v-table density="compact" class="mb-4">
+            <tbody>
+              <tr>
+                <th class="text-left">Section</th>
+                <td>{{ team?.sectionName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Team</th>
+                <td>{{ team?.teamName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Instructor</th>
+                <td>{{ selectedTeamInstructor?.fullName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Email</th>
+                <td>{{ selectedTeamInstructor?.email ?? '—' }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+
+          <div class="text-subtitle-2 font-weight-bold mb-2">Remaining Instructors</div>
+          <v-alert
+            v-if="remainingTeamInstructors.length === 0"
+            type="info"
+            variant="tonal"
+            density="compact"
+            class="mb-4"
+          >
+            No instructors will remain after this removal.
+          </v-alert>
+          <div v-else class="mb-4">
+            <v-chip
+              v-for="instructor in remainingTeamInstructors"
+              :key="instructor.instructorId"
+              size="small"
+              color="primary"
+              variant="tonal"
+              class="mr-1 mb-1"
+            >
+              {{ instructor.fullName }}
+            </v-chip>
+          </div>
+
+          <div class="text-subtitle-2 font-weight-bold mb-2">Manual Notification Preview</div>
+          <v-table density="compact">
+            <tbody>
+              <tr>
+                <th class="text-left">Instructor</th>
+                <td>{{ selectedTeamInstructor?.fullName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Email</th>
+                <td>{{ selectedTeamInstructor?.email ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Previous Team</th>
+                <td>{{ team?.teamName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Section</th>
+                <td>{{ team?.sectionName ?? '—' }}</td>
+              </tr>
+              <tr>
+                <th class="text-left">Status</th>
+                <td>Removed from team</td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card-text>
+
+        <v-divider />
+        <v-card-actions class="pa-4">
+          <v-btn variant="text" @click="cancelRemoveInstructor">Cancel</v-btn>
+          <v-spacer />
+          <v-btn v-if="removeInstructorStep === 2" variant="outlined" @click="removeInstructorStep = 1">Modify</v-btn>
+          <v-btn
+            color="error"
+            :loading="removeInstructorSaving"
+            @click="removeInstructorStep === 1 ? goToRemoveInstructorPreview() : confirmRemoveInstructor()"
+          >
+            {{ removeInstructorStep === 1 ? 'Preview' : 'Confirm' }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-dialog v-model="deleteDialog" max-width="760" persistent>
       <v-card>
         <v-card-title class="pa-4">
@@ -422,7 +585,7 @@
 
           <div class="text-subtitle-2 font-weight-bold mb-2">Instructors to Remove</div>
           <v-alert
-            v-if="!team?.instructorNames.length"
+            v-if="!team?.teamInstructors.length"
             type="info"
             variant="tonal"
             density="compact"
@@ -432,14 +595,14 @@
           </v-alert>
           <div v-else class="mb-4">
             <v-chip
-              v-for="instructor in team.instructorNames"
-              :key="instructor"
+              v-for="instructor in team.teamInstructors"
+              :key="instructor.instructorId"
               size="small"
               color="primary"
               variant="tonal"
               class="mr-1 mb-1"
             >
-              {{ instructor }}
+              {{ instructor.fullName }}
             </v-chip>
           </div>
 
@@ -474,11 +637,25 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserInfoStore } from '@/stores/userInfo'
-import { deleteTeam, getTeam, removeStudentFromTeam, updateTeam } from '../services/teamService'
+import { deleteTeam, getTeam, removeInstructorFromTeam, removeStudentFromTeam, updateTeam } from '../services/teamService'
 import { useTeamNotificationsStore } from '../stores/teamNotifications'
-import type { TeamDeletionNotification, TeamDetail, TeamMemberDetail, UpdateTeamRequest } from '../services/teamTypes'
+import type {
+  TeamDeletionNotification,
+  TeamDetail,
+  TeamInstructorDetail,
+  TeamMemberDetail,
+  UpdateTeamRequest
+} from '../services/teamTypes'
 
 interface RemovedStudentNotification {
+  fullName: string
+  email: string
+  teamName: string
+  sectionName: string
+  status: string
+}
+
+interface RemovedInstructorNotification {
   fullName: string
   email: string
   teamName: string
@@ -502,10 +679,16 @@ const removeStep = ref(1)
 const removeSaving = ref(false)
 const removeErrors = ref<{ studentId?: string }>({})
 const selectedStudentId = ref<number | null>(null)
+const removeInstructorDialog = ref(false)
+const removeInstructorStep = ref(1)
+const removeInstructorSaving = ref(false)
+const removeInstructorErrors = ref<{ instructorId?: string }>({})
+const selectedInstructorId = ref<number | null>(null)
 const deleteDialog = ref(false)
 const deleteStep = ref(1)
 const deleteSaving = ref(false)
 const removedStudentNotification = ref<RemovedStudentNotification | null>(null)
+const removedInstructorNotification = ref<RemovedInstructorNotification | null>(null)
 const snackbar = ref({ show: false, message: '', color: 'success' })
 
 const emptyForm = () => ({
@@ -528,8 +711,16 @@ const selectedTeamMember = computed<TeamMemberDetail | null>(() =>
   team.value?.teamMembers.find((member) => member.studentId === selectedStudentId.value) ?? null
 )
 
+const selectedTeamInstructor = computed<TeamInstructorDetail | null>(() =>
+  team.value?.teamInstructors.find((instructor) => instructor.instructorId === selectedInstructorId.value) ?? null
+)
+
 const remainingTeamMembers = computed(() =>
   team.value?.teamMembers.filter((member) => member.studentId !== selectedStudentId.value) ?? []
+)
+
+const remainingTeamInstructors = computed(() =>
+  team.value?.teamInstructors.filter((instructor) => instructor.instructorId !== selectedInstructorId.value) ?? []
 )
 
 onMounted(async () => {
@@ -580,6 +771,20 @@ function cancelRemove() {
   removeStep.value = 1
 }
 
+function openRemoveInstructorDialog() {
+  selectedInstructorId.value = null
+  removeInstructorErrors.value = {}
+  removeInstructorStep.value = 1
+  removeInstructorDialog.value = true
+}
+
+function cancelRemoveInstructor() {
+  removeInstructorDialog.value = false
+  removeInstructorErrors.value = {}
+  selectedInstructorId.value = null
+  removeInstructorStep.value = 1
+}
+
 function openDeleteDialog() {
   deleteStep.value = 1
   deleteDialog.value = true
@@ -624,6 +829,15 @@ function validateRemove(): boolean {
   return true
 }
 
+function validateRemoveInstructor(): boolean {
+  removeInstructorErrors.value = {}
+  if (!selectedInstructorId.value) {
+    removeInstructorErrors.value.instructorId = 'Instructor is required.'
+    return false
+  }
+  return true
+}
+
 function goToEditPreview() {
   if (!validateEdit()) return
   editStep.value = 2
@@ -632,6 +846,11 @@ function goToEditPreview() {
 function goToRemovePreview() {
   if (!validateRemove()) return
   removeStep.value = 2
+}
+
+function goToRemoveInstructorPreview() {
+  if (!validateRemoveInstructor()) return
+  removeInstructorStep.value = 2
 }
 
 function goToDeletePreview() {
@@ -700,6 +919,41 @@ async function confirmRemove() {
   }
 }
 
+async function confirmRemoveInstructor() {
+  if (!team.value || !selectedTeamInstructor.value) return
+
+  removeInstructorSaving.value = true
+  const removedInstructor = selectedTeamInstructor.value
+
+  try {
+    const res = await removeInstructorFromTeam(team.value.teamId, removedInstructor.instructorId) as any
+    if (res.flag && res.data) {
+      const updatedTeam = res.data as TeamDetail
+      team.value = updatedTeam
+      removedInstructorNotification.value = {
+        fullName: removedInstructor.fullName,
+        email: removedInstructor.email,
+        teamName: updatedTeam.teamName,
+        sectionName: updatedTeam.sectionName,
+        status: 'Removed from team'
+      }
+      removeInstructorDialog.value = false
+      removeInstructorErrors.value = {}
+      selectedInstructorId.value = null
+      removeInstructorStep.value = 1
+      snackbar.value = { show: true, message: 'Instructor removed from team successfully.', color: 'success' }
+      return
+    }
+
+    snackbar.value = { show: true, message: res.message || 'Failed to remove instructor from team.', color: 'error' }
+  } catch (error: any) {
+    const message = error?.response?.data?.message || 'Failed to remove instructor from team.'
+    snackbar.value = { show: true, message, color: 'error' }
+  } finally {
+    removeInstructorSaving.value = false
+  }
+}
+
 async function confirmDelete() {
   if (!team.value) return
 
@@ -732,7 +986,10 @@ function buildDeletedTeamNotification(currentTeam: TeamDetail): TeamDeletionNoti
       fullName: member.fullName,
       email: member.email
     })),
-    instructorNotifications: currentTeam.instructorNames.map((fullName) => ({ fullName })),
+    instructorNotifications: currentTeam.teamInstructors.map((instructor) => ({
+      fullName: instructor.fullName,
+      email: instructor.email
+    })),
     status: 'Team deleted'
   }
 }

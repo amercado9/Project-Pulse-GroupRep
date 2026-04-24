@@ -11,6 +11,7 @@ public record TeamDetail(
     String teamWebsiteUrl,
     List<TeamMemberDetail> teamMembers,
     List<String> teamMemberNames,
+    List<TeamInstructorDetail> teamInstructors,
     List<String> instructorNames
 ) {
 }

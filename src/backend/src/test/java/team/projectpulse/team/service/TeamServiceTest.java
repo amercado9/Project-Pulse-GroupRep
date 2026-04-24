@@ -7,8 +7,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import team.projectpulse.section.domain.Section;
 import team.projectpulse.section.domain.SectionNotFoundException;
+import team.projectpulse.team.domain.InstructorNotFoundException;
 import team.projectpulse.section.repository.SectionRepository;
 import team.projectpulse.team.domain.InvalidTeamException;
+import team.projectpulse.team.domain.InvalidTeamInstructorAssignmentException;
 import team.projectpulse.team.domain.InvalidTeamStudentAssignmentException;
 import team.projectpulse.team.domain.StudentNotFoundException;
 import team.projectpulse.team.domain.Team;
@@ -16,6 +18,7 @@ import team.projectpulse.team.domain.TeamAlreadyExistsException;
 import team.projectpulse.team.domain.TeamNotFoundException;
 import team.projectpulse.team.dto.CreateTeamRequest;
 import team.projectpulse.team.dto.TeamDetail;
+import team.projectpulse.team.dto.TeamInstructorDetail;
 import team.projectpulse.team.dto.TeamMemberDetail;
 import team.projectpulse.team.dto.TeamSummary;
 import team.projectpulse.team.dto.UpdateTeamRequest;
@@ -107,6 +110,10 @@ class TeamServiceTest {
             new TeamMemberDetail(1L, "Zoe Zeta", "zoe@tcu.edu")
         ), detail.teamMembers());
         assertEquals(List.of("Amy Adams", "Zoe Zeta"), detail.teamMemberNames());
+        assertEquals(List.of(
+            new TeamInstructorDetail(4L, "Ivy Stone", "ivy@tcu.edu"),
+            new TeamInstructorDetail(3L, "Noah Bennett", "noah@tcu.edu")
+        ), detail.teamInstructors());
         assertEquals(List.of("Ivy Stone", "Noah Bennett"), detail.instructorNames());
         verify(teamRepository).findDetailById(10L);
     }
@@ -119,6 +126,10 @@ class TeamServiceTest {
         TeamDetail detail = teamService.findTeamDetail(10L);
 
         assertEquals(List.of("Amy Adams", "Zoe Zeta"), detail.teamMemberNames());
+        assertEquals(List.of(
+            new TeamInstructorDetail(4L, "Ivy Stone", "ivy@tcu.edu"),
+            new TeamInstructorDetail(3L, "Noah Bennett", "noah@tcu.edu")
+        ), detail.teamInstructors());
         assertEquals(List.of("Ivy Stone", "Noah Bennett"), detail.instructorNames());
         assertEquals("Amy Adams", detail.teamMembers().getFirst().fullName());
         assertEquals("amy@tcu.edu", detail.teamMembers().getFirst().email());
@@ -162,6 +173,7 @@ class TeamServiceTest {
         assertEquals("https://requirements-hub.example.com", detail.teamWebsiteUrl());
         assertEquals(List.of(), detail.teamMembers());
         assertEquals(List.of(), detail.teamMemberNames());
+        assertEquals(List.of(), detail.teamInstructors());
         assertEquals(List.of(), detail.instructorNames());
         verify(sectionRepository).findById(2L);
         verify(teamRepository).existsByTeamNameIgnoreCase("Requirements Hub");
@@ -249,6 +261,7 @@ class TeamServiceTest {
         TeamDetail detail = teamService.createTeam(new CreateTeamRequest(2L, "New Team", null, null));
 
         assertEquals(List.of(), detail.teamMemberNames());
+        assertEquals(List.of(), detail.teamInstructors());
         assertEquals(List.of(), detail.instructorNames());
         assertEquals(List.of(), detail.teamMembers());
     }
@@ -274,6 +287,10 @@ class TeamServiceTest {
             new TeamMemberDetail(1L, "Zoe Zeta", "zoe@tcu.edu")
         ), detail.teamMembers());
         assertEquals(List.of("Amy Adams", "Zoe Zeta"), detail.teamMemberNames());
+        assertEquals(List.of(
+            new TeamInstructorDetail(4L, "Ivy Stone", "ivy@tcu.edu"),
+            new TeamInstructorDetail(3L, "Noah Bennett", "noah@tcu.edu")
+        ), detail.teamInstructors());
         assertEquals(List.of("Ivy Stone", "Noah Bennett"), detail.instructorNames());
         verify(teamRepository).findDetailById(10L);
         verify(teamRepository).existsByTeamNameIgnoreCaseAndTeamIdNot("Requirements Hub", 10L);
@@ -412,6 +429,10 @@ class TeamServiceTest {
 
         assertEquals(List.of(new TeamMemberDetail(2L, "Amy Adams", "amy@tcu.edu")), detail.teamMembers());
         assertEquals(List.of("Amy Adams"), detail.teamMemberNames());
+        assertEquals(List.of(
+            new TeamInstructorDetail(4L, "Ivy Stone", "ivy@tcu.edu"),
+            new TeamInstructorDetail(3L, "Noah Bennett", "noah@tcu.edu")
+        ), detail.teamInstructors());
         assertEquals(List.of("Ivy Stone", "Noah Bennett"), detail.instructorNames());
         verify(teamRepository).findDetailById(10L);
         verify(userRepository).findById(1L);
@@ -436,6 +457,10 @@ class TeamServiceTest {
 
         assertEquals(List.of(), detail.teamMembers());
         assertEquals(List.of(), detail.teamMemberNames());
+        assertEquals(List.of(
+            new TeamInstructorDetail(4L, "Ivy Stone", "ivy@tcu.edu"),
+            new TeamInstructorDetail(3L, "Noah Bennett", "noah@tcu.edu")
+        ), detail.teamInstructors());
     }
 
     @Test
@@ -498,6 +523,10 @@ class TeamServiceTest {
 
         assertEquals(2L, detail.sectionId());
         assertEquals("Spring 2026 - Section A", detail.sectionName());
+        assertEquals(List.of(
+            new TeamInstructorDetail(4L, "Ivy Stone", "ivy@tcu.edu"),
+            new TeamInstructorDetail(3L, "Noah Bennett", "noah@tcu.edu")
+        ), detail.teamInstructors());
         assertEquals(List.of("Ivy Stone", "Noah Bennett"), detail.instructorNames());
     }
 
@@ -516,6 +545,133 @@ class TeamServiceTest {
 
         assertEquals(List.of(new TeamMemberDetail(1L, "Zoe Zeta", "zoe@tcu.edu")), detail.teamMembers());
         assertEquals(List.of("Zoe Zeta"), detail.teamMemberNames());
+        assertEquals(List.of(
+            new TeamInstructorDetail(4L, "Ivy Stone", "ivy@tcu.edu"),
+            new TeamInstructorDetail(3L, "Noah Bennett", "noah@tcu.edu")
+        ), detail.teamInstructors());
+    }
+
+    @Test
+    void should_RemoveInstructorFromTeam_When_InstructorIsAssigned() {
+        Team existingTeam = buildTeam();
+        User instructor = existingTeam.getInstructors().stream()
+            .filter(teamInstructor -> teamInstructor.getId().equals(3L))
+            .findFirst()
+            .orElseThrow();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(instructor));
+        when(teamRepository.save(existingTeam)).thenReturn(existingTeam);
+
+        TeamDetail detail = teamService.removeInstructorFromTeam(10L, 3L);
+
+        assertEquals(List.of(new TeamInstructorDetail(4L, "Ivy Stone", "ivy@tcu.edu")), detail.teamInstructors());
+        assertEquals(List.of("Ivy Stone"), detail.instructorNames());
+        assertEquals(List.of("Amy Adams", "Zoe Zeta"), detail.teamMemberNames());
+        verify(teamRepository).findDetailById(10L);
+        verify(userRepository).findById(3L);
+        verify(teamRepository).save(existingTeam);
+    }
+
+    @Test
+    void should_ReturnUpdatedDetail_When_RemovingInstructor() {
+        Team existingTeam = buildTeam();
+        User instructor = existingTeam.getInstructors().stream()
+            .filter(teamInstructor -> teamInstructor.getId().equals(4L))
+            .findFirst()
+            .orElseThrow();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(userRepository.findById(4L)).thenReturn(Optional.of(instructor));
+        when(teamRepository.save(existingTeam)).thenReturn(existingTeam);
+
+        TeamDetail detail = teamService.removeInstructorFromTeam(10L, 4L);
+
+        assertEquals(10L, detail.teamId());
+        assertEquals("Pulse Analytics", detail.teamName());
+        assertEquals(List.of(new TeamInstructorDetail(3L, "Noah Bennett", "noah@tcu.edu")), detail.teamInstructors());
+        assertEquals(List.of("Noah Bennett"), detail.instructorNames());
+    }
+
+    @Test
+    void should_AllowRemovingLastInstructor_When_NoOtherInstructorsRemain() {
+        Team existingTeam = buildTeam();
+        User onlyInstructor = existingTeam.getInstructors().stream()
+            .filter(teamInstructor -> teamInstructor.getId().equals(4L))
+            .findFirst()
+            .orElseThrow();
+        existingTeam.setInstructors(new LinkedHashSet<>(List.of(onlyInstructor)));
+
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(userRepository.findById(4L)).thenReturn(Optional.of(onlyInstructor));
+        when(teamRepository.save(existingTeam)).thenReturn(existingTeam);
+
+        TeamDetail detail = teamService.removeInstructorFromTeam(10L, 4L);
+
+        assertEquals(List.of(), detail.teamInstructors());
+        assertEquals(List.of(), detail.instructorNames());
+    }
+
+    @Test
+    void should_ThrowTeamNotFoundException_When_RemovingInstructorFromMissingTeam() {
+        when(teamRepository.findDetailById(404L)).thenReturn(Optional.empty());
+
+        TeamNotFoundException ex = assertThrows(
+            TeamNotFoundException.class,
+            () -> teamService.removeInstructorFromTeam(404L, 3L)
+        );
+
+        assertEquals("No team found with id: 404", ex.getMessage());
+    }
+
+    @Test
+    void should_ThrowInstructorNotFoundException_When_InstructorDoesNotExist() {
+        Team existingTeam = buildTeam();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(userRepository.findById(404L)).thenReturn(Optional.empty());
+
+        InstructorNotFoundException ex = assertThrows(
+            InstructorNotFoundException.class,
+            () -> teamService.removeInstructorFromTeam(10L, 404L)
+        );
+
+        assertEquals("No instructor found with id: 404", ex.getMessage());
+    }
+
+    @Test
+    void should_ThrowInstructorNotFoundException_When_UserIsNotInstructor() {
+        Team existingTeam = buildTeam();
+        User student = existingTeam.getStudents().stream()
+            .filter(teamStudent -> teamStudent.getId().equals(1L))
+            .findFirst()
+            .orElseThrow();
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
+
+        InstructorNotFoundException ex = assertThrows(
+            InstructorNotFoundException.class,
+            () -> teamService.removeInstructorFromTeam(10L, 1L)
+        );
+
+        assertEquals("No instructor found with id: 1", ex.getMessage());
+    }
+
+    @Test
+    void should_ThrowInvalidTeamInstructorAssignmentException_When_InstructorIsNotAssignedToTeam() {
+        Team existingTeam = buildTeam();
+        User instructor = new User();
+        instructor.setId(55L);
+        instructor.setFirstName("Maya");
+        instructor.setLastName("Lee");
+        instructor.setEmail("maya@tcu.edu");
+        instructor.setRoles("instructor");
+        when(teamRepository.findDetailById(10L)).thenReturn(Optional.of(existingTeam));
+        when(userRepository.findById(55L)).thenReturn(Optional.of(instructor));
+
+        InvalidTeamInstructorAssignmentException ex = assertThrows(
+            InvalidTeamInstructorAssignmentException.class,
+            () -> teamService.removeInstructorFromTeam(10L, 55L)
+        );
+
+        assertEquals("Instructor 55 is not assigned to team 10.", ex.getMessage());
     }
 
     private Team buildTeam() {
@@ -534,12 +690,18 @@ class TeamServiceTest {
         student2.setEmail("amy@tcu.edu");
 
         User instructor1 = new User();
+        instructor1.setId(3L);
         instructor1.setFirstName("Noah");
         instructor1.setLastName("Bennett");
+        instructor1.setEmail("noah@tcu.edu");
+        instructor1.setRoles("instructor");
 
         User instructor2 = new User();
+        instructor2.setId(4L);
         instructor2.setFirstName("Ivy");
         instructor2.setLastName("Stone");
+        instructor2.setEmail("ivy@tcu.edu");
+        instructor2.setRoles("instructor");
 
         Team team = new Team();
         team.setTeamId(10L);
