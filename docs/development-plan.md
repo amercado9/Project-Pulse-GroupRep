@@ -35,10 +35,10 @@ Modules: `auth`, `section`, `rubric`
 | UC-5 | Edit a senior design section | Done |
 | UC-6 | Set up active weeks for a section | Done |
 | UC-25 | Student sets up a student account | Done |
-| UC-31 | Generate peer eval report for entire section | Not started |
-| UC-32 | Generate WAR report for a team | Not started |
-| UC-33 | Generate peer eval report for a student | Not started |
-| UC-34 | Generate WAR report for a student | Not started |
+| UC-31 | Generate peer eval report for entire section | Done |
+| UC-32 | Generate WAR report for a team | Done |
+| UC-33 | Generate peer eval report for a student | Done |
+| UC-34 | Generate WAR report for a student | Done |
 
 ---
 
@@ -73,12 +73,12 @@ Modules: `team`, `activity`, `evaluation`
 | UC-9 | Create a senior design team | Done |
 | UC-10 | Edit a senior design team | Done |
 | UC-12 | Assign students to senior design teams | Done |
-| UC-13 | Remove a student from a senior design team | Not started |
-| UC-14 | Delete a senior design team | Not started |
-| UC-19 | Assign instructors to senior design teams | Not started |
-| UC-20 | Remove an instructor from a senior design team | Not started |
-| UC-28 | Submit peer evaluation for the previous week | Not started |
-| UC-29 | View own peer evaluation report | Not started |
+| UC-13 | Remove a student from a senior design team | Done |
+| UC-14 | Delete a senior design team | Done |
+| UC-19 | Assign instructors to senior design teams | Done |
+| UC-20 | Remove an instructor from a senior design team | Done |
+| UC-28 | Submit peer evaluation for the previous week | Done |
+| UC-29 | View own peer evaluation report | Done |
 
 ---
 
@@ -86,7 +86,7 @@ Modules: `team`, `activity`, `evaluation`
 
 | UC | Description | Primary Owner | Status |
 |----|-------------|---------------|--------|
-| UC-27 | Student manages activities in a WAR | Emmanuel (lead) | Not started |
+| UC-27 | Student manages activities in a WAR | Emmanuel (lead) | Done |
 
 ---
 

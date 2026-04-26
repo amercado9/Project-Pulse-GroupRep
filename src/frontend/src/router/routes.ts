@@ -47,6 +47,42 @@ export const routes = [
         name: 'home',
         meta: { title: 'Home', icon: 'mdi-home', isMenuItem: true, requiresAuth: true }
       },
+      {
+        path: '/war',
+        component: () => import('@/features/activity/pages/WarActivities.vue'),
+        name: 'war-activities',
+        meta: {
+          title: 'WAR',
+          icon: 'mdi-clipboard-text-clock-outline',
+          isMenuItem: true,
+          requiresAuth: true,
+          roles: ['student']
+        }
+      },
+      {
+        path: '/peer-evaluations',
+        component: () => import('@/features/evaluation/pages/PeerEvaluations.vue'),
+        name: 'peer-evaluations',
+        meta: {
+          title: 'Peer Evaluations',
+          icon: 'mdi-account-star-outline',
+          isMenuItem: true,
+          requiresAuth: true,
+          roles: ['student']
+        }
+      },
+      {
+        path: '/peer-evaluation-report',
+        component: () => import('@/features/report/pages/MyPeerEvaluationReport.vue'),
+        name: 'peer-evaluation-report',
+        meta: {
+          title: 'My Peer Report',
+          icon: 'mdi-file-chart-outline',
+          isMenuItem: true,
+          requiresAuth: true,
+          roles: ['student']
+        }
+      },
 
       // ── Sections ─────────────────────────────────────────────────────────
       {
@@ -82,10 +118,16 @@ export const routes = [
         meta: { requiresAuth: true, roles: ['admin'] }
       },
       {
+        path: '/teams/assign-instructors',
+        component: () => import('@/features/team/pages/TeamInstructorAssignments.vue'),
+        name: 'team-instructor-assignments',
+        meta: { requiresAuth: true, roles: ['admin'] }
+      },
+      {
         path: '/teams/:id',
         component: () => import('@/features/team/pages/TeamDetail.vue'),
         name: 'team-detail',
-        meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
+        meta: { requiresAuth: true, roles: ['admin', 'instructor', 'student'] }
       },
 
       // ── Rubrics ──────────────────────────────────────────────────────────

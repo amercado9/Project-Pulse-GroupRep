@@ -21,4 +21,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
         order by lower(u.lastName), lower(u.firstName), lower(u.email)
         """)
     List<User> findEnabledStudentsBySectionId(@Param("sectionId") Long sectionId);
+
+    @Query("""
+        select u from User u
+        where u.enabled = true
+          and lower(concat(' ', coalesce(u.roles, ''), ' ')) like '% instructor %'
+        order by lower(u.lastName), lower(u.firstName), lower(u.email)
+        """)
+    List<User> findEnabledInstructorsOrdered();
 }

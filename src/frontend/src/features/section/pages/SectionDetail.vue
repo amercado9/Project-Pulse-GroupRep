@@ -18,7 +18,17 @@
           <v-chip :color="section.active ? 'success' : 'default'" variant="tonal">
             {{ section.active ? 'Active' : 'Inactive' }}
           </v-chip>
-          <v-btn color="primary" prepend-icon="mdi-pencil" variant="outlined" size="small" @click="openEditDialog">
+          <v-btn
+            v-if="isAdmin || isInstructor"
+            color="secondary"
+            prepend-icon="mdi-clipboard-text"
+            variant="outlined"
+            class="mr-2"
+            @click="openPeerEvalReportDialog"
+          >
+            Peer Eval Report
+          </v-btn>
+          <v-btn color="primary" prepend-icon="mdi-pencil" variant="outlined" @click="openEditDialog">
             Edit
           </v-btn>
           <v-btn
@@ -281,6 +291,99 @@
       </v-card>
     </v-dialog>
 
+    <!-- Peer Eval Report Dialog (UC-31) -->
+    <v-dialog v-model="peerEvalReportDialog" max-width="1000" persistent>
+      <v-card>
+        <v-card-title class="pa-6 pb-2">
+          <span class="text-h6">Peer Evaluation Report — {{ section?.sectionName }}</span>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <template v-if="peerEvalStep === 1">
+            <p class="mb-4 text-body-2">Select the active week to generate the peer evaluation report for this section.</p>
+            <v-select
+              v-model="peerEvalSelectedWeek"
+              :items="sortedActiveWeeks"
+              label="Active Week"
+              density="compact"
+              variant="outlined"
+              :disabled="!sortedActiveWeeks.length"
+              style="max-width: 320px"
+            />
+          </template>
+
+          <template v-else-if="peerEvalReport">
+            <div class="text-subtitle-1 font-weight-bold mb-4">Week {{ peerEvalReport.week }}</div>
+            <template v-if="peerEvalReport.studentReports.length > 0">
+              <v-table density="compact">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Team</th>
+                    <th>Grade</th>
+                    <th>Commented by</th>
+                    <th>Public Comments</th>
+                    <th>Private Comments</th>
+                    <th>Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template v-for="sr in peerEvalReport.studentReports" :key="sr.studentId">
+                    <tr v-if="sr.evaluations.length === 0">
+                      <td>{{ sr.studentName }}</td>
+                      <td>{{ sr.teamName }}</td>
+                      <td>—</td>
+                      <td>—</td>
+                      <td>—</td>
+                      <td>—</td>
+                      <td>
+                        <v-chip size="x-small" :color="sr.submitted ? 'success' : 'error'" variant="tonal">
+                          {{ sr.submitted ? 'Yes' : 'No' }}
+                        </v-chip>
+                      </td>
+                    </tr>
+                    <template v-else>
+                      <tr v-for="(ev, idx) in sr.evaluations" :key="idx">
+                        <td>{{ idx === 0 ? sr.studentName : '' }}</td>
+                        <td>{{ idx === 0 ? sr.teamName : '' }}</td>
+                        <td>{{ idx === 0 ? `${Math.round(sr.grade!)}/${Math.round(sr.maxGrade!)}` : '' }}</td>
+                        <td>{{ ev.evaluatorName }}</td>
+                        <td>{{ ev.publicComment ?? '—' }}</td>
+                        <td>{{ ev.privateComment ?? '—' }}</td>
+                        <td>
+                          <v-chip v-if="idx === 0" size="x-small" :color="sr.submitted ? 'success' : 'error'" variant="tonal">
+                            {{ sr.submitted ? 'Yes' : 'No' }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                    </template>
+                  </template>
+                </tbody>
+              </v-table>
+            </template>
+            <v-alert v-else type="info" variant="tonal">
+              No peer evaluation data found for week {{ peerEvalReport.week }}.
+            </v-alert>
+          </template>
+        </v-card-text>
+
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="outlined" @click="closePeerEvalReportDialog">Close</v-btn>
+          <v-btn
+            v-if="peerEvalStep === 1"
+            color="primary"
+            :disabled="!peerEvalSelectedWeek"
+            :loading="peerEvalLoading"
+            @click="generatePeerEvalReport"
+          >
+            Generate
+          </v-btn>
+          <v-btn v-else variant="outlined" @click="peerEvalStep = 1">Back</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
       {{ snackbar.message }}
     </v-snackbar>
@@ -290,13 +393,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useUserInfoStore } from '@/stores/userInfo'
 import { getSection, updateSection, setupActiveWeeks } from '../services/sectionService'
 import { getAllRubrics } from '@/features/rubric/services/rubricService'
+import { getSectionPeerEvalReport } from '@/features/report/services/reportService'
 import type { SectionDetail } from '../services/sectionTypes'
 import type { Rubric } from '@/features/rubric/services/rubricTypes'
+import type { SectionPeerEvalReportResponse } from '@/features/report/services/reportTypes'
 
 const route = useRoute()
 const router = useRouter()
+const userInfoStore = useUserInfoStore()
 
 const section = ref<SectionDetail | null>(null)
 const loading = ref(false)
@@ -317,6 +424,15 @@ const allWeeks = ref<{ value: string; label: string }[]>([])
 const selectedWeeks = ref<string[]>([])
 
 const snackbar = ref({ show: false, message: '', color: 'success' })
+
+const peerEvalReportDialog = ref(false)
+const peerEvalStep = ref(1)
+const peerEvalLoading = ref(false)
+const peerEvalSelectedWeek = ref<string>('')
+const peerEvalReport = ref<SectionPeerEvalReportResponse | null>(null)
+
+const isAdmin = computed(() => userInfoStore.isAdmin)
+const isInstructor = computed(() => userInfoStore.isInstructor)
 
 const selectedRubricName = computed(() =>
   rubrics.value.find(r => r.rubricId === editForm.value.rubricId)?.rubricName ?? null
@@ -475,5 +591,53 @@ async function confirmWeeks() {
   } finally {
     savingWeeks.value = false
   }
+}
+
+// ── Peer Eval Report (UC-31) ──────────────────────────────────────────────────
+
+function openPeerEvalReportDialog() {
+  peerEvalStep.value = 1
+  peerEvalReport.value = null
+  peerEvalSelectedWeek.value = ''
+  if (sortedActiveWeeks.value.length) {
+    const prev = getPreviousIsoWeek()
+    peerEvalSelectedWeek.value = sortedActiveWeeks.value.includes(prev)
+      ? prev
+      : sortedActiveWeeks.value[sortedActiveWeeks.value.length - 1] as string
+  }
+  peerEvalReportDialog.value = true
+}
+
+function getPreviousIsoWeek(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 7)
+  const jan4 = new Date(d.getFullYear(), 0, 4)
+  const dayOfYear = Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000)
+  const weekNum = Math.ceil((dayOfYear + jan4.getDay()) / 7)
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
+}
+
+async function generatePeerEvalReport() {
+  if (!section.value || !peerEvalSelectedWeek.value) return
+  peerEvalLoading.value = true
+  try {
+    const res = await getSectionPeerEvalReport(section.value.sectionId, peerEvalSelectedWeek.value) as any
+    if (res.flag) {
+      peerEvalReport.value = res.data
+      peerEvalStep.value = 2
+    } else {
+      snackbar.value = { show: true, message: res.message || 'Failed to generate report.', color: 'error' }
+    }
+  } catch {
+    snackbar.value = { show: true, message: 'An error occurred generating the report.', color: 'error' }
+  } finally {
+    peerEvalLoading.value = false
+  }
+}
+
+function closePeerEvalReportDialog() {
+  peerEvalReportDialog.value = false
+  peerEvalStep.value = 1
+  peerEvalReport.value = null
 }
 </script>
