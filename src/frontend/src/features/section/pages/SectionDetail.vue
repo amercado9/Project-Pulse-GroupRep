@@ -14,8 +14,8 @@
         <v-col>
           <h2 class="text-h5 font-weight-bold">{{ section.sectionName }}</h2>
         </v-col>
-        <v-col cols="auto">
-          <v-chip :color="section.active ? 'success' : 'default'" variant="tonal" class="mr-2">
+        <v-col cols="auto" class="d-flex align-center ga-2">
+          <v-chip :color="section.active ? 'success' : 'default'" variant="tonal">
             {{ section.active ? 'Active' : 'Inactive' }}
           </v-chip>
           <v-btn
@@ -30,6 +30,14 @@
           </v-btn>
           <v-btn color="primary" prepend-icon="mdi-pencil" variant="outlined" @click="openEditDialog">
             Edit
+          </v-btn>
+          <v-btn
+            color="primary"
+            prepend-icon="mdi-email-plus-outline"
+            size="small"
+            @click="router.push({ name: 'section-invite', params: { id: section.sectionId } })"
+          >
+            Invite Students
           </v-btn>
         </v-col>
       </v-row>
