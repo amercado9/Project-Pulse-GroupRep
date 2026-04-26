@@ -18,3 +18,6 @@ export const getMyPeerEvaluationReport = (week?: string) =>
   request.get<ApiResponse<StudentPeerEvaluationReportResponse>>(`${REPORT_BASE}/peer-evaluations/me`, {
     params: week ? { week } : undefined
   }) as unknown as Promise<ApiResponse<StudentPeerEvaluationReportResponse>>
+
+export const getInstructorStudentPeerEvalReport = (teamId: number, studentId: number, startWeek: string, endWeek: string) =>
+  request.get<any>(`${BASE}/${teamId}/students/${studentId}/peer-eval-report`, { params: { startWeek, endWeek } })

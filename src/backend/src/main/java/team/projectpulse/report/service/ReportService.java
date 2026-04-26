@@ -444,4 +444,54 @@ public class ReportService {
             return count;
         }
     }
+
+    public team.projectpulse.report.dto.InstructorStudentPeerEvalReportResponse generateInstructorStudentPeerEvalReport(
+            Long teamId, Long studentId, String startWeek, String endWeek) {
+        Team team = teamRepository.findById(teamId)
+            .orElseThrow(() -> new InvalidTeamException("Team not found with id " + teamId));
+
+        User student = userRepository.findById(studentId)
+            .orElseThrow(() -> new InvalidTeamException("Student not found with id " + studentId));
+
+        List<EvaluationEntry> allEntries = evaluationSubmissionRepository
+            .findEntriesByEvaluateeStudentIdAndTeamIdAndWeekRange(studentId, teamId, startWeek, endWeek);
+
+        Map<String, List<EvaluationEntry>> byWeek = allEntries.stream()
+            .collect(Collectors.groupingBy(
+                e -> e.getSubmission().getWeek(),
+                LinkedHashMap::new,
+                Collectors.toList()
+            ));
+
+        List<team.projectpulse.report.dto.StudentPeerEvalWeekReport> weekReports = byWeek.entrySet().stream()
+            .map(entry -> {
+                List<EvalReportEntry> evalRows = entry.getValue().stream()
+                    .map(e -> {
+                        double totalScore = e.getScores().stream().mapToInt(EvaluationScore::getScore).sum();
+                        double maxScore = e.getScores().stream()
+                            .mapToDouble(s -> s.getCriterion().getMaxScore()).sum();
+                        String evaluatorName = e.getSubmission().getEvaluatorStudent().getFirstName()
+                            + " " + e.getSubmission().getEvaluatorStudent().getLastName();
+                        return new EvalReportEntry(evaluatorName, totalScore, maxScore,
+                            e.getPublicComment(), e.getPrivateComment());
+                    })
+                    .toList();
+
+                Double grade = evalRows.stream().mapToDouble(EvalReportEntry::totalScore).average().orElse(0.0);
+                Double maxGrade = evalRows.isEmpty() ? null : evalRows.getFirst().maxScore();
+
+                return new team.projectpulse.report.dto.StudentPeerEvalWeekReport(entry.getKey(), grade, maxGrade, evalRows);
+            })
+            .toList();
+
+        return new team.projectpulse.report.dto.InstructorStudentPeerEvalReportResponse(
+            student.getId(),
+            student.getFirstName() + " " + student.getLastName(),
+            team.getTeamId(),
+            team.getTeamName(),
+            startWeek,
+            endWeek,
+            weekReports
+        );
+    }
 }
