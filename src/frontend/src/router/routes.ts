@@ -130,6 +130,14 @@ export const routes = [
         meta: { requiresAuth: true, roles: ['admin', 'instructor', 'student'] }
       },
 
+      // ── Instructors ──────────────────────────────────────────────────────
+      {
+        path: '/instructors/invite',
+        component: () => import('@/features/instructor/pages/InstructorInvite.vue'),
+        name: 'instructor-invite',
+        meta: { title: 'Invite Instructors', icon: 'mdi-account-tie-outline', isMenuItem: true, requiresAuth: true, roles: ['admin'] }
+      },
+
       // ── Students ─────────────────────────────────────────────────────────
       {
         path: '/students',
