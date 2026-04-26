@@ -59,6 +59,23 @@ export interface SectionPeerEvalReportResponse {
   studentReports: StudentPeerEvalReport[]
 }
 
+export interface StudentPeerEvalWeekReport {
+  week: string
+  grade: number | null
+  maxGrade: number | null
+  evaluations: EvalReportEntry[]
+}
+
+export interface InstructorStudentPeerEvalReportResponse {
+  studentId: number
+  studentName: string
+  teamId: number
+  teamName: string
+  startWeek: string
+  endWeek: string
+  weekReports: StudentPeerEvalWeekReport[]
+}
+
 export interface ReportWeekOption {
   week: string
   label: string

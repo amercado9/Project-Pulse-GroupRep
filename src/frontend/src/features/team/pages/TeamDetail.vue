@@ -77,19 +77,27 @@
                 No team members assigned.
               </v-alert>
               <div v-else>
-                <v-chip
-                  v-for="member in team.teamMembers"
-                  :key="member.studentId"
-                  size="small"
-                  class="mr-1 mb-1"
-                  :color="(isAdmin || isInstructor) ? 'primary' : undefined"
-                  :variant="(isAdmin || isInstructor) ? 'tonal' : 'elevated'"
-                  :style="(isAdmin || isInstructor) ? 'cursor:pointer' : ''"
-                  @click="(isAdmin || isInstructor) && openStudentWarDialog(member)"
-                >
-                  {{ member.fullName }}
-                  <v-tooltip v-if="isAdmin || isInstructor" activator="parent">Generate WAR Report</v-tooltip>
-                </v-chip>
+                <template v-for="member in team.teamMembers" :key="member.studentId">
+                  <v-menu v-if="isAdmin || isInstructor" location="bottom start">
+                    <template #activator="{ props: menuProps }">
+                      <v-chip
+                        v-bind="menuProps"
+                        size="small"
+                        class="mr-1 mb-1"
+                        color="primary"
+                        variant="tonal"
+                        style="cursor:pointer"
+                      >
+                        {{ member.fullName }}
+                      </v-chip>
+                    </template>
+                    <v-list density="compact">
+                      <v-list-item prepend-icon="mdi-file-chart" title="WAR Report" @click="openStudentWarDialog(member)" />
+                      <v-list-item prepend-icon="mdi-account-star" title="Peer Eval Report" @click="openStudentPeerEvalDialog(member)" />
+                    </v-list>
+                  </v-menu>
+                  <v-chip v-else size="small" class="mr-1 mb-1">{{ member.fullName }}</v-chip>
+                </template>
               </div>
             </v-card-text>
           </v-card>
@@ -803,6 +811,95 @@
       </v-card>
     </v-dialog>
 
+    <!-- Student Peer Eval Report Dialog (UC-33) -->
+    <v-dialog v-model="studentPeerEvalDialog" max-width="900" persistent>
+      <v-card>
+        <v-card-title class="pa-6 pb-2">
+          <span class="text-h6">Peer Eval Report — {{ selectedStudentForPeerEval?.fullName }}</span>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <template v-if="studentPeerEvalStep === 1">
+            <p class="mb-4 text-body-2">Select the week range to generate the peer evaluation report for this student.</p>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="studentPeerEvalStartWeek"
+                  :items="activeWeeks"
+                  label="Start Week"
+                  density="compact"
+                  variant="outlined"
+                  :disabled="!activeWeeks.length"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="studentPeerEvalEndWeek"
+                  :items="activeWeeks"
+                  label="End Week"
+                  density="compact"
+                  variant="outlined"
+                  :disabled="!activeWeeks.length"
+                />
+              </v-col>
+            </v-row>
+          </template>
+
+          <template v-else-if="studentPeerEvalReport">
+            <div class="text-subtitle-1 font-weight-bold mb-4">
+              {{ selectedStudentForPeerEval?.fullName }} — {{ studentPeerEvalReport.startWeek }} to {{ studentPeerEvalReport.endWeek }}
+            </div>
+            <template v-if="studentPeerEvalReport.weekReports.length > 0">
+              <div v-for="weekReport in studentPeerEvalReport.weekReports" :key="weekReport.week" class="mb-6">
+                <div class="text-subtitle-2 font-weight-medium mb-2">
+                  Week {{ weekReport.week }}
+                  <span v-if="weekReport.grade !== null" class="text-medium-emphasis ml-2">
+                    Grade: {{ Math.round(weekReport.grade) }}/{{ Math.round(weekReport.maxGrade!) }}
+                  </span>
+                </div>
+                <v-table density="compact">
+                  <thead>
+                    <tr>
+                      <th>Commented by</th>
+                      <th>Score</th>
+                      <th>Public Comments</th>
+                      <th>Private Comments</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(ev, idx) in weekReport.evaluations" :key="idx">
+                      <td>{{ ev.evaluatorName }}</td>
+                      <td>{{ Math.round(ev.totalScore) }}/{{ Math.round(ev.maxScore) }}</td>
+                      <td>{{ ev.publicComment ?? '—' }}</td>
+                      <td>{{ ev.privateComment ?? '—' }}</td>
+                    </tr>
+                  </tbody>
+                </v-table>
+              </div>
+            </template>
+            <v-alert v-else type="info" variant="tonal">
+              No peer evaluation data found for the selected period.
+            </v-alert>
+          </template>
+        </v-card-text>
+
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="outlined" @click="closeStudentPeerEvalDialog">Close</v-btn>
+          <v-btn
+            v-if="studentPeerEvalStep === 1"
+            color="primary"
+            :disabled="!studentPeerEvalStartWeek || !studentPeerEvalEndWeek || !activeWeeks.length"
+            :loading="studentPeerEvalLoading"
+            @click="generateStudentPeerEvalReport"
+          >
+            Generate
+          </v-btn>
+          <v-btn v-else variant="outlined" @click="studentPeerEvalStep = 1">Back</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
       {{ snackbar.message }}
     </v-snackbar>
@@ -816,7 +913,7 @@ import { useUserInfoStore } from '@/stores/userInfo'
 import { deleteTeam, getTeam, removeInstructorFromTeam, removeStudentFromTeam, updateTeam } from '../services/teamService'
 import { useTeamNotificationsStore } from '../stores/teamNotifications'
 import { getSection } from '@/features/section/services/sectionService'
-import { getTeamWarReport, getStudentWarReport } from '@/features/report/services/reportService'
+import { getTeamWarReport, getStudentWarReport, getInstructorStudentPeerEvalReport } from '@/features/report/services/reportService'
 import type {
   TeamDeletionNotification,
   TeamDetail,
@@ -824,7 +921,7 @@ import type {
   TeamMemberDetail,
   UpdateTeamRequest
 } from '../services/teamTypes'
-import type { TeamWarReportResponse, StudentWarReportResponse } from '@/features/report/services/reportTypes'
+import type { TeamWarReportResponse, StudentWarReportResponse, InstructorStudentPeerEvalReportResponse } from '@/features/report/services/reportTypes'
 
 interface RemovedStudentNotification {
   fullName: string
@@ -884,6 +981,14 @@ const studentWarStartWeek = ref<string>('')
 const studentWarEndWeek = ref<string>('')
 const selectedStudent = ref<{ studentId: number; fullName: string } | null>(null)
 const studentWarReport = ref<StudentWarReportResponse | null>(null)
+
+const studentPeerEvalDialog = ref(false)
+const studentPeerEvalStep = ref(1)
+const studentPeerEvalLoading = ref(false)
+const studentPeerEvalStartWeek = ref<string>('')
+const studentPeerEvalEndWeek = ref<string>('')
+const selectedStudentForPeerEval = ref<{ studentId: number; fullName: string } | null>(null)
+const studentPeerEvalReport = ref<InstructorStudentPeerEvalReportResponse | null>(null)
 
 const emptyForm = () => ({
   teamName: '',
@@ -1305,6 +1410,62 @@ function closeStudentWarDialog() {
   studentWarStep.value = 1
   studentWarReport.value = null
   selectedStudent.value = null
+}
+
+async function openStudentPeerEvalDialog(member: { studentId: number; fullName: string }) {
+  if (!team.value) return
+  selectedStudentForPeerEval.value = member
+  studentPeerEvalStep.value = 1
+  studentPeerEvalReport.value = null
+  studentPeerEvalStartWeek.value = ''
+  studentPeerEvalEndWeek.value = ''
+  studentPeerEvalDialog.value = true
+
+  if (!activeWeeks.value.length) {
+    try {
+      const res = await getSection(team.value.sectionId) as any
+      if (res.flag && res.data?.activeWeeks) {
+        activeWeeks.value = [...res.data.activeWeeks].sort()
+      }
+    } catch {
+      snackbar.value = { show: true, message: 'Failed to load section weeks.', color: 'error' }
+    }
+  }
+
+  if (activeWeeks.value.length) {
+    studentPeerEvalStartWeek.value = activeWeeks.value[0] as string
+    studentPeerEvalEndWeek.value = activeWeeks.value[activeWeeks.value.length - 1] as string
+  }
+}
+
+async function generateStudentPeerEvalReport() {
+  if (!team.value || !selectedStudentForPeerEval.value || !studentPeerEvalStartWeek.value || !studentPeerEvalEndWeek.value) return
+  studentPeerEvalLoading.value = true
+  try {
+    const res = await getInstructorStudentPeerEvalReport(
+      team.value.teamId,
+      selectedStudentForPeerEval.value.studentId,
+      studentPeerEvalStartWeek.value,
+      studentPeerEvalEndWeek.value
+    ) as any
+    if (res.flag) {
+      studentPeerEvalReport.value = res.data
+      studentPeerEvalStep.value = 2
+    } else {
+      snackbar.value = { show: true, message: res.message || 'Failed to generate report.', color: 'error' }
+    }
+  } catch {
+    snackbar.value = { show: true, message: 'An error occurred generating the report.', color: 'error' }
+  } finally {
+    studentPeerEvalLoading.value = false
+  }
+}
+
+function closeStudentPeerEvalDialog() {
+  studentPeerEvalDialog.value = false
+  studentPeerEvalStep.value = 1
+  studentPeerEvalReport.value = null
+  selectedStudentForPeerEval.value = null
 }
 </script>
 
