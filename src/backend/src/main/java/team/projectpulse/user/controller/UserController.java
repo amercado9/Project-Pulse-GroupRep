@@ -5,10 +5,13 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import team.projectpulse.system.Result;
+import team.projectpulse.user.dto.InstructorSummary;
 import team.projectpulse.user.dto.StudentDetail;
 import team.projectpulse.user.dto.StudentSummary;
+import team.projectpulse.user.service.InstructorService;
 import team.projectpulse.user.service.StudentService;
 
 import java.util.List;
@@ -18,10 +21,14 @@ import java.util.List;
 public class UserController {
 
     private final StudentService studentService;
+    private final InstructorService instructorService;
 
-    public UserController(StudentService studentService) {
+    public UserController(StudentService studentService, InstructorService instructorService) {
         this.studentService = studentService;
+        this.instructorService = instructorService;
     }
+
+    // ── Students ─────────────────────────────────────────────────────────────
 
     @GetMapping("/students")
     @PreAuthorize("hasRole('ADMIN')")
@@ -40,5 +47,17 @@ public class UserController {
     public Result<Void> deleteStudent(@PathVariable Long id) {
         studentService.deleteStudent(id);
         return Result.success("Student deleted successfully.", null);
+    }
+
+    // ── Instructors ───────────────────────────────────────────────────────────
+
+    @GetMapping("/instructors")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<List<InstructorSummary>> findInstructors(
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) String teamName) {
+        return Result.success(instructorService.searchInstructors(firstName, lastName, enabled, teamName));
     }
 }

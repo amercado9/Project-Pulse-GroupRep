@@ -45,4 +45,27 @@ public interface UserRepository extends JpaRepository<User, Long> {
           and lower(concat(' ', coalesce(u.roles, ''), ' ')) like '% student %'
         """)
     Optional<User> findStudentById(@Param("id") Long id);
+
+    @Query("""
+        select distinct u from User u
+        where lower(concat(' ', coalesce(u.roles, ''), ' ')) like '% instructor %'
+          and (:firstName is null or lower(u.firstName) like lower(concat('%', :firstName, '%')))
+          and (:lastName is null or lower(u.lastName) like lower(concat('%', :lastName, '%')))
+          and (:enabled is null or u.enabled = :enabled)
+          and (
+              :teamName is null
+              or exists (
+                  select t from Team t join t.instructors i
+                  where i.id = u.id
+                    and lower(t.teamName) like lower(concat('%', :teamName, '%'))
+              )
+          )
+        order by lower(u.lastName), lower(u.firstName), lower(u.email)
+        """)
+    List<User> searchInstructors(
+        @Param("firstName") String firstName,
+        @Param("lastName") String lastName,
+        @Param("enabled") Boolean enabled,
+        @Param("teamName") String teamName
+    );
 }
