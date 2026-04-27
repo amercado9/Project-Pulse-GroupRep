@@ -20,3 +20,6 @@ export interface FindInstructorsParams {
 
 export const findInstructors = (params?: FindInstructorsParams) =>
   request.get<ApiResponse<InstructorSummary[]>>('/users/instructors', { params })
+
+export const deactivateInstructor = (id: number, reason: string) =>
+  request.patch<ApiResponse<void>>(`/users/instructors/${id}/deactivate`, reason)

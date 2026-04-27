@@ -94,6 +94,7 @@
               <th>Team Name(s)</th>
               <th>Status</th>
               <th>Academic Year</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -122,25 +123,76 @@
                 </v-chip>
               </td>
               <td>{{ instructor.academicYear ?? '—' }}</td>
+              <td>
+                <v-tooltip text="Deactivate" location="top" v-if="instructor.enabled">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon="mdi-account-remove"
+                      variant="text"
+                      size="small"
+                      color="warning"
+                      @click="showDeactivateDialog(instructor)"
+                    />
+                  </template>
+                </v-tooltip>
+              </td>
             </tr>
           </tbody>
         </v-table>
       </v-col>
     </v-row>
+
+    <!-- Deactivate Dialog -->
+    <v-dialog v-model="deactivateDialog" max-width="480" persistent>
+      <v-card title="Deactivate Instructor">
+        <v-card-text>
+          <v-alert
+            type="warning"
+            variant="tonal"
+            class="mb-4"
+            title="Important Notice"
+          >
+            The instructor will no longer have access to the System. But the instructor’s information is kept in the System.
+            Deactivation will NOT remove the instructor from the System and the instructor’s account can be recovered in the future.
+          </v-alert>
+          <p class="mb-4">Are you sure you want to deactivate <strong>{{ selectedInstructor?.firstName }} {{ selectedInstructor?.lastName }}</strong>?</p>
+          <v-textarea
+            v-model="deactivationReason"
+            label="Reason for deactivation"
+            variant="outlined"
+            rows="3"
+            required
+          ></v-textarea>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="deactivateDialog = false">Cancel</v-btn>
+          <v-btn color="warning" variant="flat" :loading="deactivating" @click="confirmDeactivate">Deactivate</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { findInstructors } from '../services/instructorService'
+import { findInstructors, deactivateInstructor } from '../services/instructorService'
 import type { InstructorSummary } from '../services/instructorService'
+import { useNotifyStore } from '@/stores/notify'
 
 const router = useRouter()
+const notifyStore = useNotifyStore()
 
 const instructors = ref<InstructorSummary[]>([])
 const loading = ref(false)
 const searched = ref(false)
+
+const deactivateDialog = ref(false)
+const deactivating = ref(false)
+const deactivationReason = ref('')
+const selectedInstructor = ref<InstructorSummary | null>(null)
 
 const statusOptions = [
   { title: 'Active', value: 'true' },
@@ -180,6 +232,36 @@ async function search() {
 function clearFilters() {
   filters.value = { firstName: '', lastName: '', teamName: '', enabledStr: null }
   search()
+}
+
+function showDeactivateDialog(instructor: InstructorSummary) {
+  selectedInstructor.value = instructor
+  deactivationReason.value = ''
+  deactivateDialog.value = true
+}
+
+async function confirmDeactivate() {
+  if (!selectedInstructor.value) return
+  if (!deactivationReason.value.trim()) {
+    notifyStore.warning('Please enter a reason for deactivation.')
+    return
+  }
+
+  deactivating.value = true
+  try {
+    const res = await deactivateInstructor(selectedInstructor.value.instructorId, deactivationReason.value)
+    if (res.flag) {
+      notifyStore.success('Instructor deactivated successfully.')
+      deactivateDialog.value = false
+      search()
+    } else {
+      notifyStore.error(res.message || 'Failed to deactivate instructor.')
+    }
+  } catch (err) {
+    notifyStore.error('An error occurred while deactivating the instructor.')
+  } finally {
+    deactivating.value = false
+  }
 }
 </script>
 

@@ -40,6 +40,8 @@ public class User implements UserDetails {
     private Section section;
 
     private boolean enabled;
+    @Column(name = "deactivation_reason")
+    private String deactivationReason;
 
     // ── UserDetails ──────────────────────────────────────────────────────────
 
@@ -98,4 +100,7 @@ public class User implements UserDetails {
     public void setSection(Section v)        { this.section = v; }
 
     public void setEnabled(boolean v)        { this.enabled = v; }
+
+    public String getDeactivationReason()    { return deactivationReason; }
+    public void setDeactivationReason(String v) { this.deactivationReason = v; }
 }

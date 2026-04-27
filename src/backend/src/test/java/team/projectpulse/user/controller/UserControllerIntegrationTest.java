@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -213,5 +214,28 @@ class UserControllerIntegrationTest {
     void should_ReturnUnauthorized_When_UnauthenticatedSearchesInstructors() throws Exception {
         mockMvc.perform(get("/api/v1/users/instructors"))
             .andExpect(status().isUnauthorized());
+    }
+
+    // ── PATCH /users/instructors/{id}/deactivate ──────────────────────────────
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_DeactivateInstructor_When_AdminRequestsDeactivation() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/instructors/200/deactivate")
+                .contentType("application/json")
+                .content("Retiring"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.message").value("Instructor deactivated successfully."));
+
+        verify(instructorService).deactivateInstructor(200L, "Retiring");
+    }
+
+    @Test
+    @WithMockUser(roles = "INSTRUCTOR")
+    void should_ReturnForbidden_When_InstructorRequestsDeactivation() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/instructors/200/deactivate")
+                .content("Reason"))
+            .andExpect(status().isForbidden());
     }
 }

@@ -41,6 +41,22 @@ public class InstructorService {
                 .toList();
     }
 
+    /**
+     * UC-23: Deactivate an instructor.
+     */
+    public void deactivateInstructor(Long instructorId, String reason) {
+        User user = userRepository.findById(instructorId)
+                .orElseThrow(() -> new RuntimeException("Instructor not found with id: " + instructorId));
+
+        if (!user.getRoles().contains("instructor") && !user.getRoles().contains("admin")) {
+            throw new RuntimeException("User is not an instructor");
+        }
+
+        user.setEnabled(false);
+        user.setDeactivationReason(reason);
+        userRepository.save(user);
+    }
+
     private InstructorSummary toSummary(User instructor) {
         List<Team> teams = teamRepository.findAllByInstructorId(instructor.getId());
         List<String> teamNames = teams.stream().map(Team::getTeamName).toList();
