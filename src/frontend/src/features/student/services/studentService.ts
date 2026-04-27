@@ -1,6 +1,6 @@
 import request from '@/shared/utils/request'
 import type { ApiResponse } from '@/shared/types/api'
-import type { StudentDetail, StudentSummary } from './studentTypes'
+import type { StudentDetail, StudentSummary, StudentUpdateDto } from './studentTypes'
 
 const BASE = '/users/students'
 
@@ -12,3 +12,6 @@ export const getStudent = (id: number) =>
 
 export const deleteStudent = (id: number) =>
   request.delete<ApiResponse<null>>(`${BASE}/${id}`)
+
+export const updateStudent = (id: number, data: StudentUpdateDto) =>
+  request.put<ApiResponse<null>>(`${BASE}/${id}`, data)
