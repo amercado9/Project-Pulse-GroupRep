@@ -132,10 +132,16 @@ export const routes = [
 
       // ── Instructors ──────────────────────────────────────────────────────
       {
+        path: '/instructors',
+        component: () => import('@/features/instructor/pages/Instructors.vue'),
+        name: 'instructors',
+        meta: { title: 'Instructors', icon: 'mdi-account-tie', isMenuItem: true, requiresAuth: true, roles: ['admin'] }
+      },
+      {
         path: '/instructors/invite',
         component: () => import('@/features/instructor/pages/InstructorInvite.vue'),
         name: 'instructor-invite',
-        meta: { title: 'Invite Instructors', icon: 'mdi-account-tie-outline', isMenuItem: true, requiresAuth: true, roles: ['admin'] }
+        meta: { requiresAuth: true, roles: ['admin'] }
       },
 
       // ── Students ─────────────────────────────────────────────────────────

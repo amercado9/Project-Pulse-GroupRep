@@ -11,12 +11,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import team.projectpulse.config.ControllerTestSecurityConfig;
 import team.projectpulse.config.SecurityConfig;
 import team.projectpulse.user.domain.StudentNotFoundException;
+import team.projectpulse.user.dto.InstructorSummary;
 import team.projectpulse.user.dto.StudentDetail;
 import team.projectpulse.user.dto.StudentSummary;
+import team.projectpulse.user.service.InstructorService;
 import team.projectpulse.user.service.StudentService;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +38,9 @@ class UserControllerIntegrationTest {
 
     @MockitoBean
     private StudentService studentService;
+
+    @MockitoBean
+    private InstructorService instructorService;
 
     // ── GET /users/students ───────────────────────────────────────────────────
 
@@ -142,6 +148,70 @@ class UserControllerIntegrationTest {
     @Test
     void should_ReturnUnauthorized_When_UnauthenticatedRequestDeletesStudent() throws Exception {
         mockMvc.perform(delete("/api/v1/users/students/1003"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    // ── GET /users/instructors ────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnInstructorList_When_AdminSearchesWithNoFilters() throws Exception {
+        when(instructorService.searchInstructors(null, null, null, null)).thenReturn(List.of(
+            new InstructorSummary(200L, "Ivy", "Stone", "ivy@tcu.edu", true, List.of("Pulse Analytics"), 2026),
+            new InstructorSummary(201L, "Noah", "Bennett", "noah@tcu.edu", true, List.of(), null)
+        ));
+
+        mockMvc.perform(get("/api/v1/users/instructors"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.data[0].lastName").value("Stone"))
+            .andExpect(jsonPath("$.data[0].teamNames[0]").value("Pulse Analytics"))
+            .andExpect(jsonPath("$.data[0].academicYear").value(2026))
+            .andExpect(jsonPath("$.data[1].academicYear").isEmpty());
+
+        verify(instructorService).searchInstructors(null, null, null, null);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_PassFiltersToService_When_AdminSearchesWithParams() throws Exception {
+        when(instructorService.searchInstructors("Ivy", "Stone", true, "Pulse")).thenReturn(List.of(
+            new InstructorSummary(200L, "Ivy", "Stone", "ivy@tcu.edu", true, List.of("Pulse Analytics"), 2026)
+        ));
+
+        mockMvc.perform(get("/api/v1/users/instructors")
+                .param("firstName", "Ivy")
+                .param("lastName", "Stone")
+                .param("enabled", "true")
+                .param("teamName", "Pulse"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].email").value("ivy@tcu.edu"));
+
+        verify(instructorService).searchInstructors("Ivy", "Stone", true, "Pulse");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnEmptyList_When_NoInstructorsMatch() throws Exception {
+        when(instructorService.searchInstructors(any(), any(), any(), any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/users/instructors").param("lastName", "Unknown"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.data").isArray())
+            .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @Test
+    @WithMockUser(roles = "INSTRUCTOR")
+    void should_ReturnForbidden_When_InstructorSearchesInstructors() throws Exception {
+        mockMvc.perform(get("/api/v1/users/instructors"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void should_ReturnUnauthorized_When_UnauthenticatedSearchesInstructors() throws Exception {
+        mockMvc.perform(get("/api/v1/users/instructors"))
             .andExpect(status().isUnauthorized());
     }
 }
