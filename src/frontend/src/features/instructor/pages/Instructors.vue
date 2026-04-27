@@ -97,7 +97,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="instructor in instructors" :key="instructor.instructorId">
+            <tr
+              v-for="instructor in instructors"
+              :key="instructor.instructorId"
+              class="clickable-row"
+              @click="router.push({ name: 'instructor-detail', params: { id: instructor.instructorId } })"
+            >
               <td>{{ instructor.firstName }}</td>
               <td>{{ instructor.lastName }}</td>
               <td>
@@ -184,6 +189,12 @@ function clearFilters() {
 </script>
 
 <style scoped lang="scss">
+.clickable-row {
+  cursor: pointer;
+  &:hover {
+    background-color: rgba(var(--v-theme-primary), 0.05);
+  }
+}
 .chip-group {
   min-width: 160px;
 }

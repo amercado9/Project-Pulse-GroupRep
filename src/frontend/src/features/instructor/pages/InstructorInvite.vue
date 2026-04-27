@@ -1,7 +1,7 @@
 <template>
   <v-container max-width="720">
-    <v-btn variant="text" prepend-icon="mdi-arrow-left" class="mb-4" @click="router.push({ name: 'home' })">
-      Back to Home
+    <v-btn variant="text" prepend-icon="mdi-arrow-left" class="mb-4" @click="router.push({ name: 'instructors' })">
+      Back to Instructors
     </v-btn>
 
     <h2 class="text-h5 font-weight-bold mb-6">Invite Instructors</h2>
