@@ -19,6 +19,13 @@ export interface StudentDetail {
   teamNames: string[]
 }
 
+export interface StudentUpdateDto {
+  firstName: string
+  lastName: string
+  email: string
+  password?: string
+}
+
 export interface StudentDeletionNotification {
   studentId: number
   fullName: string

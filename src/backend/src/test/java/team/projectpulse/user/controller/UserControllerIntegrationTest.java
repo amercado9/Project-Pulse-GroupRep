@@ -14,12 +14,14 @@ import team.projectpulse.user.domain.StudentNotFoundException;
 import team.projectpulse.user.dto.InstructorSummary;
 import team.projectpulse.user.dto.StudentDetail;
 import team.projectpulse.user.dto.StudentSummary;
+import team.projectpulse.user.dto.StudentUpdateDto;
 import team.projectpulse.user.service.InstructorService;
 import team.projectpulse.user.service.StudentService;
 
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,6 +30,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
 
 @WebMvcTest(controllers = UserController.class)
 @Import({UserExceptionHandler.class, SecurityConfig.class, ControllerTestSecurityConfig.class})
@@ -42,6 +46,9 @@ class UserControllerIntegrationTest {
 
     @MockitoBean
     private InstructorService instructorService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // ── GET /users/students ───────────────────────────────────────────────────
 
@@ -248,5 +255,60 @@ class UserControllerIntegrationTest {
             .andExpect(jsonPath("$.message").value("Instructor deactivated successfully."));
 
         verify(instructorService).deactivateInstructor(1L);
+    }
+
+    // ── PUT /users/students/{id} ──────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_UpdateStudent_When_AdminRequests() throws Exception {
+        StudentUpdateDto updateDto = new StudentUpdateDto("NewFirst", "NewLast", "new@email.com", "newPass");
+
+        mockMvc.perform(put("/api/v1/users/students/1003")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDto)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.message").value("Account updated successfully."));
+
+        verify(studentService).updateStudent(eq(1003L), eq(updateDto));
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void should_UpdateStudent_When_StudentRequests() throws Exception {
+        StudentUpdateDto updateDto = new StudentUpdateDto("NewFirst", "NewLast", "new@email.com", "newPass");
+
+        mockMvc.perform(put("/api/v1/users/students/1003")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDto)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.message").value("Account updated successfully."));
+
+        verify(studentService).updateStudent(eq(1003L), eq(updateDto));
+    }
+
+    @Test
+    @WithMockUser(roles = "INSTRUCTOR")
+    void should_ReturnForbidden_When_InstructorUpdatesStudent() throws Exception {
+        StudentUpdateDto updateDto = new StudentUpdateDto("NewFirst", "NewLast", "new@email.com", "newPass");
+
+        mockMvc.perform(put("/api/v1/users/students/1003")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDto)))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnBadRequest_When_UpdateDataIsInvalid() throws Exception {
+        StudentUpdateDto updateDto = new StudentUpdateDto("", "", "invalid-email", "");
+
+        mockMvc.perform(put("/api/v1/users/students/1003")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDto)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.flag").value(false));
     }
 }
