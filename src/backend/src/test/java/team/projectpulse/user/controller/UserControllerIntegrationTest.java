@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -213,5 +214,39 @@ class UserControllerIntegrationTest {
     void should_ReturnUnauthorized_When_UnauthenticatedSearchesInstructors() throws Exception {
         mockMvc.perform(get("/api/v1/users/instructors"))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReturnInstructorDetail_When_AdminRequestsInstructor() throws Exception {
+        InstructorSummary instructor = new InstructorSummary(1L, "Ivy", "Stone", "ivy@tcu.edu", true, List.of(), null);
+        when(instructorService.getInstructorById(1L)).thenReturn(instructor);
+
+        mockMvc.perform(get("/api/v1/users/instructors/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.data.firstName").value("Ivy"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_ReactivateInstructor_When_AdminRequestsReactivation() throws Exception {
+        mockMvc.perform(put("/api/v1/users/instructors/1/reactivate"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.message").value("Instructor reactivated successfully."));
+
+        verify(instructorService).reactivateInstructor(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void should_DeactivateInstructor_When_AdminRequestsDeactivation() throws Exception {
+        mockMvc.perform(put("/api/v1/users/instructors/1/deactivate"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flag").value(true))
+            .andExpect(jsonPath("$.message").value("Instructor deactivated successfully."));
+
+        verify(instructorService).deactivateInstructor(1L);
     }
 }

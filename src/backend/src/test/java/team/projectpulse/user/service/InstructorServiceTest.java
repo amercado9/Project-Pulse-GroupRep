@@ -9,19 +9,19 @@ import team.projectpulse.section.domain.Section;
 import team.projectpulse.team.domain.Team;
 import team.projectpulse.team.repository.TeamRepository;
 import team.projectpulse.user.domain.User;
+import team.projectpulse.user.domain.UserNotFoundException;
 import team.projectpulse.user.dto.InstructorSummary;
 import team.projectpulse.user.repository.UserRepository;
 
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class InstructorServiceTest {
@@ -128,6 +128,59 @@ class InstructorServiceTest {
         List<InstructorSummary> results = instructorService.searchInstructors(null, null, null, null);
 
         assertNull(results.get(0).academicYear());
+    }
+
+    // ── Get / Reactivate / Deactivate ────────────────────────────────────────
+
+    @Test
+    void should_ReturnInstructor_When_IdExistsAndIsInstructor() {
+        User ivy = buildInstructor(1L, "Ivy", "Stone", true);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(ivy));
+        when(teamRepository.findAllByInstructorId(1L)).thenReturn(List.of());
+
+        InstructorSummary result = instructorService.getInstructorById(1L);
+
+        assertNotNull(result);
+        assertEquals("Ivy", result.firstName());
+    }
+
+    @Test
+    void should_ThrowException_When_IdExistsButIsNotInstructor() {
+        User student = new User();
+        student.setId(1L);
+        student.setRoles("student");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
+
+        assertThrows(UserNotFoundException.class, () -> instructorService.getInstructorById(1L));
+    }
+
+    @Test
+    void should_ThrowException_When_IdDoesNotExist() {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> instructorService.getInstructorById(1L));
+    }
+
+    @Test
+    void should_ReactivateInstructor_When_IdExistsAndIsInstructor() {
+        User ivy = buildInstructor(1L, "Ivy", "Stone", false);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(ivy));
+
+        instructorService.reactivateInstructor(1L);
+
+        assertTrue(ivy.isEnabled());
+        verify(userRepository).save(ivy);
+    }
+
+    @Test
+    void should_DeactivateInstructor_When_IdExistsAndIsInstructor() {
+        User ivy = buildInstructor(1L, "Ivy", "Stone", true);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(ivy));
+
+        instructorService.deactivateInstructor(1L);
+
+        assertFalse(ivy.isEnabled());
+        verify(userRepository).save(ivy);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -143,6 +143,12 @@ export const routes = [
         name: 'instructor-invite',
         meta: { requiresAuth: true, roles: ['admin'] }
       },
+      {
+        path: '/instructors/:id',
+        component: () => import('@/features/instructor/pages/InstructorDetail.vue'),
+        name: 'instructor-detail',
+        meta: { requiresAuth: true, roles: ['admin'] }
+      },
 
       // ── Students ─────────────────────────────────────────────────────────
       {

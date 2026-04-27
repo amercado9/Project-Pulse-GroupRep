@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import team.projectpulse.team.domain.Team;
 import team.projectpulse.team.repository.TeamRepository;
 import team.projectpulse.user.domain.User;
+import team.projectpulse.user.domain.UserNotFoundException;
 import team.projectpulse.user.dto.InstructorSummary;
 import team.projectpulse.user.repository.UserRepository;
 
@@ -39,6 +40,34 @@ public class InstructorService {
                         .reversed()
                         .thenComparing(s -> s.lastName().toLowerCase()))
                 .toList();
+    }
+
+    public InstructorSummary getInstructorById(Long id) {
+        User user = userRepository.findById(id)
+                .filter(u -> u.getRoles().contains("instructor"))
+                .orElseThrow(() -> new UserNotFoundException("No instructor found with id: " + id));
+        return toSummary(user);
+    }
+
+    public void reactivateInstructor(Long id) {
+        User user = userRepository.findById(id)
+                .filter(u -> u.getRoles().contains("instructor"))
+                .orElseThrow(() -> new UserNotFoundException("No instructor found with id: " + id));
+        
+        user.setEnabled(true);
+        userRepository.save(user);
+        
+        // Notify the instructor
+        System.out.println("[INFO] Notifying instructor " + user.getEmail() + " that their account has been reactivated.");
+    }
+
+    public void deactivateInstructor(Long id) {
+        User user = userRepository.findById(id)
+                .filter(u -> u.getRoles().contains("instructor"))
+                .orElseThrow(() -> new UserNotFoundException("No instructor found with id: " + id));
+        
+        user.setEnabled(false);
+        userRepository.save(user);
     }
 
     private InstructorSummary toSummary(User instructor) {
