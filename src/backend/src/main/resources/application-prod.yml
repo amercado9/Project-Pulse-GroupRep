@@ -13,14 +13,24 @@ spring:
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
 
+security:
+  jwt:
+    secret-key: ${SECURITY_JWT_SECRET_KEY}
+    token-expiry-in-hours: ${SECURITY_JWT_TOKEN_EXPIRY_IN_HOURS:24}
+
 front-end:
   url: ${FRONTEND_URL}
 
 app:
   timezone: America/Chicago
   reminders:
-    enabled: true
-    cron: "0 0 8 * * *"
+    enabled: ${APP_REMINDERS_ENABLED:false}
+    cron: ${APP_REMINDERS_CRON:0 0 8 * * *}
+
+management:
+  health:
+    mail:
+      enabled: false
 
 server:
-  port: 80
+  port: ${PORT:80}

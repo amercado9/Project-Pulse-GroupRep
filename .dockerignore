@@ -1,0 +1,11 @@
+.git
+.github
+docs
+requirements
+README.md
+claude.md
+node_modules
+src/backend/target
+src/frontend/dist
+src/frontend/node_modules
+src/frontend/.vite

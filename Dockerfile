@@ -18,7 +18,7 @@ COPY src/backend/src ./src
 COPY --from=frontend-build /app/frontend/dist ./src/main/resources/static/
 
 RUN apk add --no-cache maven
-RUN mvn --batch-mode package -DskipTests
+RUN mvn --batch-mode package -DskipTests -Dmaven.gitcommitid.skip=true
 
 # ── Stage 3: Runtime image ────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine

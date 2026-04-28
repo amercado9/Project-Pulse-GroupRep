@@ -6,7 +6,8 @@ import { useNotifyStore } from '@/stores/notify'
 import router from '@/router'
 
 const devBaseURL = import.meta.env.VITE_SERVER_URL as string | undefined
-const baseURL = import.meta.env.DEV ? devBaseURL : '/api/v1'
+const prodBaseURL = import.meta.env.VITE_API_BASE_URL as string | undefined
+const baseURL = import.meta.env.DEV ? devBaseURL : (prodBaseURL || '/api/v1')
 const requestInstance = axios.create({ baseURL, timeout: 10_000 })
 
 let lastToastAt = 0
