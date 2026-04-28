@@ -54,6 +54,18 @@
     <!-- Student table -->
     <template v-else>
       <v-card variant="outlined">
+        <v-card-text class="pb-0">
+          <v-text-field
+            v-model="search"
+            prepend-inner-icon="mdi-magnify"
+            label="Search by name, email, or section"
+            variant="outlined"
+            density="compact"
+            clearable
+            hide-details
+            class="mb-3"
+          />
+        </v-card-text>
         <v-card-text class="pa-0">
           <v-table>
             <thead>
@@ -66,12 +78,12 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="students.length === 0">
+              <tr v-if="filteredStudents.length === 0">
                 <td colspan="5" class="text-center text-medium-emphasis py-6">
-                  No students found in the system.
+                  No students found.
                 </td>
               </tr>
-              <tr v-for="student in students" :key="student.studentId">
+              <tr v-for="student in filteredStudents" :key="student.studentId">
                 <td class="font-weight-medium">{{ student.firstName }} {{ student.lastName }}</td>
                 <td>{{ student.email }}</td>
                 <td>{{ student.sectionName ?? '—' }}</td>
@@ -114,6 +126,17 @@ const studentNotificationsStore = useStudentNotificationsStore()
 
 const students = ref<StudentSummary[]>([])
 const loading = ref(false)
+const search = ref('')
+
+const filteredStudents = computed(() => {
+  const q = search.value?.trim().toLowerCase() ?? ''
+  if (!q) return students.value
+  return students.value.filter(s =>
+    `${s.firstName} ${s.lastName}`.toLowerCase().includes(q) ||
+    s.email.toLowerCase().includes(q) ||
+    (s.sectionName ?? '').toLowerCase().includes(q)
+  )
+})
 
 const deletedStudentNotification = computed(() => studentNotificationsStore.deletedStudentNotification)
 
