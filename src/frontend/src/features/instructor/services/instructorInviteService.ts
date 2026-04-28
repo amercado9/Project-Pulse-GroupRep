@@ -8,18 +8,17 @@ export interface InstructorInvitePreview {
   body: string
 }
 
-export interface InstructorInviteSendResult {
-  sentCount: number
+export interface InstructorInviteLink {
+  email: string
+  link: string
 }
 
-export interface InstructorInviteSendPayload {
-  emails: string[]
-  subject: string
-  body: string
+export interface InstructorInviteLinksResult {
+  links: InstructorInviteLink[]
 }
 
 export const previewInstructorInvites = (emailsInput: string) =>
   request.post<ApiResponse<InstructorInvitePreview>>('/instructors/invites/preview', { emailsInput })
 
-export const sendInstructorInvites = (payload: InstructorInviteSendPayload) =>
-  request.post<ApiResponse<InstructorInviteSendResult>>('/instructors/invites/send', payload)
+export const generateInstructorInviteLinks = (emails: string[]) =>
+  request.post<ApiResponse<InstructorInviteLinksResult>>('/instructors/invites/send', { emails })

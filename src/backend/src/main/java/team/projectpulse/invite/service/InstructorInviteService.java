@@ -3,8 +3,9 @@ package team.projectpulse.invite.service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import team.projectpulse.invite.domain.InvalidEmailFormatException;
+import team.projectpulse.invite.dto.InstructorInviteLink;
+import team.projectpulse.invite.dto.InstructorInviteLinksResult;
 import team.projectpulse.invite.dto.InvitePreview;
-import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.user.domain.User;
 import team.projectpulse.user.repository.UserRepository;
 
@@ -24,14 +25,12 @@ public class InstructorInviteService {
             "^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$"
     );
 
-    private final EmailService emailService;
     private final UserRepository userRepository;
 
     @Value("${front-end.url}")
     private String frontendUrl;
 
-    public InstructorInviteService(EmailService emailService, UserRepository userRepository) {
-        this.emailService = emailService;
+    public InstructorInviteService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
@@ -46,14 +45,14 @@ public class InstructorInviteService {
         return new InvitePreview(emails, emails.size(), DEFAULT_SUBJECT, body);
     }
 
-    public InviteSendResult send(List<String> emails, String subject, String body, String adminEmail) {
-        for (String email : emails) {
-            String registrationLink = frontendUrl + "/register?email="
-                    + URLEncoder.encode(email, StandardCharsets.UTF_8);
-            String resolvedBody = body.replace("[Registration link]", registrationLink);
-            emailService.send(email, subject, resolvedBody);
-        }
-        return new InviteSendResult(emails.size());
+    public InstructorInviteLinksResult send(List<String> emails) {
+        List<InstructorInviteLink> links = emails.stream()
+                .map(email -> new InstructorInviteLink(
+                        email,
+                        frontendUrl + "/register?email=" + URLEncoder.encode(email, StandardCharsets.UTF_8)
+                ))
+                .toList();
+        return new InstructorInviteLinksResult(links);
     }
 
     private List<String> parseEmails(String input) {

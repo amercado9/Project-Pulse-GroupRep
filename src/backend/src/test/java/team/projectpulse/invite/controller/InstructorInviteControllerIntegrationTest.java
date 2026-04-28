@@ -15,8 +15,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import team.projectpulse.config.ControllerTestSecurityConfig;
 import team.projectpulse.config.SecurityConfig;
 import team.projectpulse.invite.domain.InvalidEmailFormatException;
+import team.projectpulse.invite.dto.InstructorInviteLink;
+import team.projectpulse.invite.dto.InstructorInviteLinksResult;
 import team.projectpulse.invite.dto.InvitePreview;
-import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.invite.service.InstructorInviteService;
 
 import java.util.List;
@@ -113,19 +114,13 @@ class InstructorInviteControllerIntegrationTest {
     // ── Send ─────────────────────────────────────────────────────────────────
 
     @Test
-    void should_ReturnSentCount_When_AdminSendsInvitations() throws Exception {
-        when(instructorInviteService.send(
-                eq(List.of("ivy@tcu.edu")),
-                eq(InstructorInviteService.DEFAULT_SUBJECT),
-                any(String.class),
-                any(String.class)
-        )).thenReturn(new InviteSendResult(1));
-
-        Map<String, Object> body = Map.of(
-                "emails", List.of("ivy@tcu.edu"),
-                "subject", InstructorInviteService.DEFAULT_SUBJECT,
-                "body", "Hello, please register."
+    void should_ReturnLinks_When_AdminRequestsInviteLinks() throws Exception {
+        InstructorInviteLinksResult result = new InstructorInviteLinksResult(
+                List.of(new InstructorInviteLink("ivy@tcu.edu", "http://localhost:5173/register?email=ivy%40tcu.edu"))
         );
+        when(instructorInviteService.send(eq(List.of("ivy@tcu.edu")))).thenReturn(result);
+
+        Map<String, Object> body = Map.of("emails", List.of("ivy@tcu.edu"));
 
         mockMvc.perform(post("/api/v1/instructors/invites/send")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -133,17 +128,14 @@ class InstructorInviteControllerIntegrationTest {
                         .with(authentication(adminAuth())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.flag").value(true))
-                .andExpect(jsonPath("$.message").value("Invitations sent successfully."))
-                .andExpect(jsonPath("$.data.sentCount").value(1));
+                .andExpect(jsonPath("$.message").value("Links generated successfully."))
+                .andExpect(jsonPath("$.data.links[0].email").value("ivy@tcu.edu"))
+                .andExpect(jsonPath("$.data.links[0].link").value("http://localhost:5173/register?email=ivy%40tcu.edu"));
     }
 
     @Test
     void should_ReturnBadRequest_When_SendRequestHasEmptyEmails() throws Exception {
-        Map<String, Object> body = Map.of(
-                "emails", List.of(),
-                "subject", "Subject",
-                "body", "Body"
-        );
+        Map<String, Object> body = Map.of("emails", List.of());
 
         mockMvc.perform(post("/api/v1/instructors/invites/send")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -155,11 +147,7 @@ class InstructorInviteControllerIntegrationTest {
     @Test
     @WithMockUser(roles = "INSTRUCTOR")
     void should_ReturnForbidden_When_InstructorAttemptsSend() throws Exception {
-        Map<String, Object> body = Map.of(
-                "emails", List.of("ivy@tcu.edu"),
-                "subject", "Subject",
-                "body", "Body"
-        );
+        Map<String, Object> body = Map.of("emails", List.of("ivy@tcu.edu"));
 
         mockMvc.perform(post("/api/v1/instructors/invites/send")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -169,11 +157,7 @@ class InstructorInviteControllerIntegrationTest {
 
     @Test
     void should_ReturnUnauthorized_When_UnauthenticatedUserAttemptsSend() throws Exception {
-        Map<String, Object> body = Map.of(
-                "emails", List.of("ivy@tcu.edu"),
-                "subject", "Subject",
-                "body", "Body"
-        );
+        Map<String, Object> body = Map.of("emails", List.of("ivy@tcu.edu"));
 
         mockMvc.perform(post("/api/v1/instructors/invites/send")
                         .contentType(MediaType.APPLICATION_JSON)

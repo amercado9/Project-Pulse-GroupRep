@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import team.projectpulse.invite.dto.InstructorInviteLinksResult;
 import team.projectpulse.invite.dto.InstructorInviteSendRequest;
 import team.projectpulse.invite.dto.InvitePreview;
 import team.projectpulse.invite.dto.InvitePreviewRequest;
-import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.invite.service.InstructorInviteService;
 import team.projectpulse.system.Result;
 
@@ -33,9 +33,9 @@ public class InstructorInviteController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/send")
-    public Result<InviteSendResult> send(@Valid @RequestBody InstructorInviteSendRequest request,
-                                          Authentication authentication) {
-        return Result.success("Invitations sent successfully.",
-                instructorInviteService.send(request.emails(), request.subject(), request.body(), authentication.getName()));
+    public Result<InstructorInviteLinksResult> send(@Valid @RequestBody InstructorInviteSendRequest request,
+                                                     Authentication authentication) {
+        return Result.success("Links generated successfully.",
+                instructorInviteService.send(request.emails()));
     }
 }
