@@ -48,17 +48,17 @@ Modules: `user`
 
 | UC | Description | Status |
 |----|-------------|--------|
-| UC-11 | Invite students to join a senior design section | Not started |
-| UC-15 | Find students | Not started |
-| UC-16 | View a student | Not started |
-| UC-17 | Delete a student | Not started |
-| UC-18 | Admin generates instructor invite link (sends manually) | Not started |
-| UC-30 | Instructor sets up account via invite link | Not started |
-| UC-21 | Find instructors | Not started |
-| UC-22 | View an instructor | Not started |
-| UC-23 | Deactivate an instructor | Not started |
-| UC-24 | Reactivate an instructor | Not started |
-| UC-26 | Student edits account | Not started |
+| UC-11 | Invite students to join a senior design section | Done |
+| UC-15 | Find students | Done |
+| UC-16 | View a student | Done |
+| UC-17 | Delete a student | Done |
+| UC-18 | Admin generates instructor invite link (sends manually) | Done |
+| UC-30 | Instructor sets up account via invite link | Done |
+| UC-21 | Find instructors | Done |
+| UC-22 | View an instructor | Done |
+| UC-23 | Deactivate an instructor | Done |
+| UC-24 | Reactivate an instructor | Done |
+| UC-26 | Student edits account | Done |
 
 ---
 

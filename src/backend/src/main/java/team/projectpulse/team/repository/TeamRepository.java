@@ -69,6 +69,8 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
         join fetch t.section s
         join t.students st
         where st.id = :studentId
+        order by t.teamId asc
+        limit 1
         """)
     Optional<Team> findByStudentIdWithSection(@Param("studentId") Long studentId);
 

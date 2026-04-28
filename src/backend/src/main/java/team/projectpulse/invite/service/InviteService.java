@@ -8,6 +8,7 @@ import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.section.domain.SectionNotFoundException;
 import team.projectpulse.section.repository.SectionRepository;
 import team.projectpulse.user.domain.User;
+import team.projectpulse.user.repository.UserRepository;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -27,19 +28,22 @@ public class InviteService {
 
     private final EmailService emailService;
     private final SectionRepository sectionRepository;
+    private final UserRepository userRepository;
 
     @Value("${front-end.url}")
     private String frontendUrl;
 
-    public InviteService(EmailService emailService, SectionRepository sectionRepository) {
+    public InviteService(EmailService emailService, SectionRepository sectionRepository, UserRepository userRepository) {
         this.emailService = emailService;
         this.sectionRepository = sectionRepository;
+        this.userRepository = userRepository;
     }
 
-    public InvitePreview preview(Long sectionId, String emailsInput, User admin) {
+    public InvitePreview preview(Long sectionId, String emailsInput, String adminEmail) {
         sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new SectionNotFoundException(sectionId));
 
+        User admin = userRepository.findByEmail(adminEmail).orElseThrow();
         List<String> emails = parseEmails(emailsInput);
         validateEmails(emails);
 
@@ -52,12 +56,12 @@ public class InviteService {
         return new InvitePreview(emails, emails.size(), EMAIL_SUBJECT, body);
     }
 
-    public InviteSendResult send(Long sectionId, List<String> emails, User admin) {
+    public InviteSendResult send(Long sectionId, List<String> emails, String adminEmail) {
         sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new SectionNotFoundException(sectionId));
 
+        User admin = userRepository.findByEmail(adminEmail).orElseThrow();
         String adminName = admin.getFirstName() + " " + admin.getLastName();
-        String adminEmail = admin.getEmail();
 
         for (String email : emails) {
             String registrationLink = frontendUrl + "/register?email="

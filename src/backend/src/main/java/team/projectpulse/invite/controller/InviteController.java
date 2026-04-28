@@ -10,7 +10,6 @@ import team.projectpulse.invite.dto.InviteSendRequest;
 import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.invite.service.InviteService;
 import team.projectpulse.system.Result;
-import team.projectpulse.user.domain.User;
 
 @RestController
 @RequestMapping("${api.endpoint.base-url}/sections/{sectionId}/invites")
@@ -27,8 +26,7 @@ public class InviteController {
     public Result<InvitePreview> preview(@PathVariable Long sectionId,
                                          @Valid @RequestBody InvitePreviewRequest request,
                                          Authentication authentication) {
-        User admin = (User) authentication.getPrincipal();
-        return Result.success(inviteService.preview(sectionId, request.emailsInput(), admin));
+        return Result.success(inviteService.preview(sectionId, request.emailsInput(), authentication.getName()));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -36,8 +34,7 @@ public class InviteController {
     public Result<InviteSendResult> send(@PathVariable Long sectionId,
                                           @Valid @RequestBody InviteSendRequest request,
                                           Authentication authentication) {
-        User admin = (User) authentication.getPrincipal();
         return Result.success("Invitations sent successfully.",
-                inviteService.send(sectionId, request.emails(), admin));
+                inviteService.send(sectionId, request.emails(), authentication.getName()));
     }
 }

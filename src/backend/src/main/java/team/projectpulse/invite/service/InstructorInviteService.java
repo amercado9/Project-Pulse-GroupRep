@@ -6,6 +6,7 @@ import team.projectpulse.invite.domain.InvalidEmailFormatException;
 import team.projectpulse.invite.dto.InvitePreview;
 import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.user.domain.User;
+import team.projectpulse.user.repository.UserRepository;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -24,15 +25,18 @@ public class InstructorInviteService {
     );
 
     private final EmailService emailService;
+    private final UserRepository userRepository;
 
     @Value("${front-end.url}")
     private String frontendUrl;
 
-    public InstructorInviteService(EmailService emailService) {
+    public InstructorInviteService(EmailService emailService, UserRepository userRepository) {
         this.emailService = emailService;
+        this.userRepository = userRepository;
     }
 
-    public InvitePreview preview(String emailsInput, User admin) {
+    public InvitePreview preview(String emailsInput, String adminEmail) {
+        User admin = userRepository.findByEmail(adminEmail).orElseThrow();
         List<String> emails = parseEmails(emailsInput);
         validateEmails(emails);
 
@@ -42,7 +46,7 @@ public class InstructorInviteService {
         return new InvitePreview(emails, emails.size(), DEFAULT_SUBJECT, body);
     }
 
-    public InviteSendResult send(List<String> emails, String subject, String body, User admin) {
+    public InviteSendResult send(List<String> emails, String subject, String body, String adminEmail) {
         for (String email : emails) {
             String registrationLink = frontendUrl + "/register?email="
                     + URLEncoder.encode(email, StandardCharsets.UTF_8);

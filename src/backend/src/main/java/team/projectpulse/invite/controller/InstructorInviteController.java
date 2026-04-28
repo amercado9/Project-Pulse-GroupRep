@@ -13,7 +13,6 @@ import team.projectpulse.invite.dto.InvitePreviewRequest;
 import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.invite.service.InstructorInviteService;
 import team.projectpulse.system.Result;
-import team.projectpulse.user.domain.User;
 
 @RestController
 @RequestMapping("${api.endpoint.base-url}/instructors/invites")
@@ -29,16 +28,14 @@ public class InstructorInviteController {
     @PostMapping("/preview")
     public Result<InvitePreview> preview(@Valid @RequestBody InvitePreviewRequest request,
                                           Authentication authentication) {
-        User admin = (User) authentication.getPrincipal();
-        return Result.success(instructorInviteService.preview(request.emailsInput(), admin));
+        return Result.success(instructorInviteService.preview(request.emailsInput(), authentication.getName()));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/send")
     public Result<InviteSendResult> send(@Valid @RequestBody InstructorInviteSendRequest request,
                                           Authentication authentication) {
-        User admin = (User) authentication.getPrincipal();
         return Result.success("Invitations sent successfully.",
-                instructorInviteService.send(request.emails(), request.subject(), request.body(), admin));
+                instructorInviteService.send(request.emails(), request.subject(), request.body(), authentication.getName()));
     }
 }

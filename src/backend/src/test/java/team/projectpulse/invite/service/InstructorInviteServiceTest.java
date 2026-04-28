@@ -12,8 +12,10 @@ import team.projectpulse.invite.domain.InvalidEmailFormatException;
 import team.projectpulse.invite.dto.InvitePreview;
 import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.user.domain.User;
+import team.projectpulse.user.repository.UserRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class InstructorInviteServiceTest {
@@ -29,19 +32,26 @@ class InstructorInviteServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private InstructorInviteService service;
+
+    private User admin;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(service, "frontendUrl", "http://localhost:5173");
+        admin = buildAdmin();
+        when(userRepository.findByEmail("admin@tcu.edu")).thenReturn(Optional.of(admin));
     }
 
     // ── Preview ──────────────────────────────────────────────────────────────
 
     @Test
     void should_ReturnPreviewWithDefaultSubjectAndBody_When_EmailsAreValid() {
-        InvitePreview preview = service.preview("ivy@tcu.edu; noah@tcu.edu", buildAdmin());
+        InvitePreview preview = service.preview("ivy@tcu.edu; noah@tcu.edu", "admin@tcu.edu");
 
         assertEquals(2, preview.emailCount());
         assertEquals(List.of("ivy@tcu.edu", "noah@tcu.edu"), preview.emails());
@@ -53,7 +63,7 @@ class InstructorInviteServiceTest {
 
     @Test
     void should_Deduplicate_When_SameEmailAppearsMoreThanOnce() {
-        InvitePreview preview = service.preview("ivy@tcu.edu; ivy@tcu.edu", buildAdmin());
+        InvitePreview preview = service.preview("ivy@tcu.edu; ivy@tcu.edu", "admin@tcu.edu");
 
         assertEquals(1, preview.emailCount());
         assertEquals(List.of("ivy@tcu.edu"), preview.emails());
@@ -62,13 +72,13 @@ class InstructorInviteServiceTest {
     @Test
     void should_ThrowInvalidEmailFormat_When_NoEmailsProvided() {
         assertThrows(InvalidEmailFormatException.class,
-                () -> service.preview("   ;   ; ", buildAdmin()));
+                () -> service.preview("   ;   ; ", "admin@tcu.edu"));
     }
 
     @Test
     void should_ThrowInvalidEmailFormatWithBadEmails_When_FormatIsWrong() {
         InvalidEmailFormatException ex = assertThrows(InvalidEmailFormatException.class,
-                () -> service.preview("not-an-email; ivy@tcu.edu", buildAdmin()));
+                () -> service.preview("not-an-email; ivy@tcu.edu", "admin@tcu.edu"));
 
         assertEquals(List.of("not-an-email"), ex.getInvalidEmails());
     }
@@ -81,7 +91,7 @@ class InstructorInviteServiceTest {
                 List.of("ivy@tcu.edu", "noah@tcu.edu"),
                 InstructorInviteService.DEFAULT_SUBJECT,
                 InstructorInviteService.buildDefaultBody("Admin User", "admin@tcu.edu", "[Registration link]"),
-                buildAdmin()
+                "admin@tcu.edu"
         );
 
         assertEquals(2, result.sentCount());
@@ -96,7 +106,7 @@ class InstructorInviteServiceTest {
                 List.of("ivy@tcu.edu"),
                 InstructorInviteService.DEFAULT_SUBJECT,
                 InstructorInviteService.buildDefaultBody("Admin User", "admin@tcu.edu", "[Registration link]"),
-                buildAdmin()
+                "admin@tcu.edu"
         );
 
         verify(emailService).send(eq("ivy@tcu.edu"), anyString(), bodyCaptor.capture());
@@ -111,7 +121,7 @@ class InstructorInviteServiceTest {
         String customBody = "Hello! Please register using this link: [Registration link]";
         ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
 
-        service.send(List.of("ivy@tcu.edu"), InstructorInviteService.DEFAULT_SUBJECT, customBody, buildAdmin());
+        service.send(List.of("ivy@tcu.edu"), InstructorInviteService.DEFAULT_SUBJECT, customBody, "admin@tcu.edu");
 
         verify(emailService).send(eq("ivy@tcu.edu"), anyString(), bodyCaptor.capture());
 

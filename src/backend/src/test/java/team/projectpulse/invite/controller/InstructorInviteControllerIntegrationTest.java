@@ -18,7 +18,6 @@ import team.projectpulse.invite.domain.InvalidEmailFormatException;
 import team.projectpulse.invite.dto.InvitePreview;
 import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.invite.service.InstructorInviteService;
-import team.projectpulse.user.domain.User;
 
 import java.util.List;
 import java.util.Map;
@@ -56,7 +55,7 @@ class InstructorInviteControllerIntegrationTest {
                 InstructorInviteService.DEFAULT_SUBJECT,
                 "Hello, Admin has invited you..."
         );
-        when(instructorInviteService.preview(eq("ivy@tcu.edu; noah@tcu.edu"), any(User.class)))
+        when(instructorInviteService.preview(eq("ivy@tcu.edu; noah@tcu.edu"), any(String.class)))
                 .thenReturn(preview);
 
         mockMvc.perform(post("/api/v1/instructors/invites/preview")
@@ -68,7 +67,7 @@ class InstructorInviteControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.emailCount").value(2))
                 .andExpect(jsonPath("$.data.emails[0]").value("ivy@tcu.edu"));
 
-        verify(instructorInviteService).preview(eq("ivy@tcu.edu; noah@tcu.edu"), any(User.class));
+        verify(instructorInviteService).preview(eq("ivy@tcu.edu; noah@tcu.edu"), any(String.class));
     }
 
     @Test
@@ -82,7 +81,7 @@ class InstructorInviteControllerIntegrationTest {
 
     @Test
     void should_ReturnBadRequest_When_EmailFormatIsInvalid() throws Exception {
-        when(instructorInviteService.preview(eq("bad-email"), any(User.class)))
+        when(instructorInviteService.preview(eq("bad-email"), any(String.class)))
                 .thenThrow(new InvalidEmailFormatException(List.of("bad-email")));
 
         mockMvc.perform(post("/api/v1/instructors/invites/preview")
@@ -119,7 +118,7 @@ class InstructorInviteControllerIntegrationTest {
                 eq(List.of("ivy@tcu.edu")),
                 eq(InstructorInviteService.DEFAULT_SUBJECT),
                 any(String.class),
-                any(User.class)
+                any(String.class)
         )).thenReturn(new InviteSendResult(1));
 
         Map<String, Object> body = Map.of(
@@ -185,14 +184,9 @@ class InstructorInviteControllerIntegrationTest {
     // ── Helper ───────────────────────────────────────────────────────────────
 
     private Authentication adminAuth() {
-        User admin = new User();
-        admin.setId(1L);
-        admin.setFirstName("Admin");
-        admin.setLastName("User");
-        admin.setEmail("admin@tcu.edu");
-        admin.setPassword("encoded");
-        admin.setRoles("admin");
-        admin.setEnabled(true);
-        return new UsernamePasswordAuthenticationToken(admin, null, admin.getAuthorities());
+        return new UsernamePasswordAuthenticationToken(
+                "admin@tcu.edu", null,
+                List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
     }
 }
