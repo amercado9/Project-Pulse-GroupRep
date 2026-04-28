@@ -2,18 +2,22 @@ package team.projectpulse.invite.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import team.projectpulse.invite.domain.InvalidEmailFormatException;
+import team.projectpulse.invite.dto.InviteLink;
+import team.projectpulse.invite.dto.InviteLinksResult;
 import team.projectpulse.invite.dto.InvitePreview;
-import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.section.domain.SectionNotFoundException;
 import team.projectpulse.section.repository.SectionRepository;
+import team.projectpulse.user.domain.StudentInviteToken;
 import team.projectpulse.user.domain.User;
+import team.projectpulse.user.repository.StudentInviteTokenRepository;
 import team.projectpulse.user.repository.UserRepository;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Service
@@ -26,17 +30,19 @@ public class InviteService {
             "^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$"
     );
 
-    private final EmailService emailService;
     private final SectionRepository sectionRepository;
     private final UserRepository userRepository;
+    private final StudentInviteTokenRepository tokenRepository;
 
     @Value("${front-end.url}")
     private String frontendUrl;
 
-    public InviteService(EmailService emailService, SectionRepository sectionRepository, UserRepository userRepository) {
-        this.emailService = emailService;
+    public InviteService(SectionRepository sectionRepository,
+                         UserRepository userRepository,
+                         StudentInviteTokenRepository tokenRepository) {
         this.sectionRepository = sectionRepository;
         this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
     }
 
     public InvitePreview preview(Long sectionId, String emailsInput, String adminEmail) {
@@ -56,21 +62,25 @@ public class InviteService {
         return new InvitePreview(emails, emails.size(), EMAIL_SUBJECT, body);
     }
 
-    public InviteSendResult send(Long sectionId, List<String> emails, String adminEmail) {
+    @Transactional
+    public InviteLinksResult send(Long sectionId, List<String> emails) {
         sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new SectionNotFoundException(sectionId));
 
-        User admin = userRepository.findByEmail(adminEmail).orElseThrow();
-        String adminName = admin.getFirstName() + " " + admin.getLastName();
+        List<InviteLink> links = emails.stream()
+                .map(email -> {
+                    String tokenValue = UUID.randomUUID().toString();
+                    StudentInviteToken token = new StudentInviteToken();
+                    token.setToken(tokenValue);
+                    token.setEmail(email.toLowerCase().trim());
+                    token.setSectionId(sectionId);
+                    token.setExpiresAt(LocalDateTime.now().plusDays(30));
+                    tokenRepository.save(token);
+                    return new InviteLink(email, frontendUrl + "/join?token=" + tokenValue);
+                })
+                .toList();
 
-        for (String email : emails) {
-            String registrationLink = frontendUrl + "/register?email="
-                    + URLEncoder.encode(email, StandardCharsets.UTF_8);
-            String body = buildEmailBody(adminName, adminEmail, registrationLink);
-            emailService.send(email, EMAIL_SUBJECT, body);
-        }
-
-        return new InviteSendResult(emails.size());
+        return new InviteLinksResult(links);
     }
 
     private List<String> parseEmails(String input) {

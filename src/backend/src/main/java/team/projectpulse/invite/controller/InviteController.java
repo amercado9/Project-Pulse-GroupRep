@@ -4,10 +4,10 @@ import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import team.projectpulse.invite.dto.InviteLinksResult;
 import team.projectpulse.invite.dto.InvitePreview;
 import team.projectpulse.invite.dto.InvitePreviewRequest;
 import team.projectpulse.invite.dto.InviteSendRequest;
-import team.projectpulse.invite.dto.InviteSendResult;
 import team.projectpulse.invite.service.InviteService;
 import team.projectpulse.system.Result;
 
@@ -31,10 +31,10 @@ public class InviteController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/send")
-    public Result<InviteSendResult> send(@PathVariable Long sectionId,
+    public Result<InviteLinksResult> send(@PathVariable Long sectionId,
                                           @Valid @RequestBody InviteSendRequest request,
                                           Authentication authentication) {
-        return Result.success("Invitations sent successfully.",
-                inviteService.send(sectionId, request.emails(), authentication.getName()));
+        return Result.success("Links generated successfully.",
+                inviteService.send(sectionId, request.emails()));
     }
 }

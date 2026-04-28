@@ -10,12 +10,17 @@ export interface InvitePreview {
   body: string
 }
 
-export interface InviteSendResult {
-  sentCount: number
+export interface InviteLink {
+  email: string
+  link: string
+}
+
+export interface InviteLinksResult {
+  links: InviteLink[]
 }
 
 export const previewInvites = (sectionId: number, emailsInput: string) =>
   request.post<ApiResponse<InvitePreview>>(`${base(sectionId)}/preview`, { emailsInput })
 
-export const sendInvites = (sectionId: number, emails: string[]) =>
-  request.post<ApiResponse<InviteSendResult>>(`${base(sectionId)}/send`, { emails })
+export const generateInviteLinks = (sectionId: number, emails: string[]) =>
+  request.post<ApiResponse<InviteLinksResult>>(`${base(sectionId)}/send`, { emails })

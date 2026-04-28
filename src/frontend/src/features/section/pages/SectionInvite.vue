@@ -30,75 +30,107 @@
       <v-card-actions class="pa-4 pt-0">
         <v-spacer />
         <v-btn color="primary" :loading="loading" @click="handlePreview">
-          Next — Preview Email
+          Next — Confirm Recipients
         </v-btn>
       </v-card-actions>
     </v-card>
 
-    <!-- Step 2: Preview & confirm -->
-    <template v-else-if="step === 2 && preview">
-      <v-card variant="outlined" class="mb-4">
-        <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
-          Step 2 of 2 — Confirm &amp; Send
-        </v-card-title>
-        <v-card-text>
-          <v-alert type="info" variant="tonal" density="compact" class="mb-4">
-            <strong>{{ preview.emailCount }}</strong>
-            {{ preview.emailCount === 1 ? 'invitation' : 'invitations' }} will be sent.
-          </v-alert>
+    <!-- Step 2: Confirm recipients -->
+    <v-card v-else-if="step === 2 && preview" variant="outlined">
+      <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+        Step 2 of 2 — Confirm &amp; Generate Links
+      </v-card-title>
+      <v-card-text>
+        <v-alert type="info" variant="tonal" density="compact" class="mb-4">
+          Registration links will be generated for
+          <strong>{{ preview.emailCount }}</strong>
+          {{ preview.emailCount === 1 ? 'student' : 'students' }}.
+          Copy and send each link manually to the recipient.
+        </v-alert>
 
-          <div class="text-caption text-medium-emphasis mb-1">Recipients</div>
-          <div class="mb-4">
-            <v-chip
-              v-for="email in preview.emails"
-              :key="email"
+        <div class="text-caption text-medium-emphasis mb-1">Recipients</div>
+        <div class="mb-2">
+          <v-chip
+            v-for="email in preview.emails"
+            :key="email"
+            size="small"
+            class="mr-1 mb-1"
+          >{{ email }}</v-chip>
+        </div>
+      </v-card-text>
+      <v-card-actions class="pa-4 pt-0">
+        <v-btn variant="text" @click="step = 1">Modify Details</v-btn>
+        <v-spacer />
+        <v-btn color="primary" :loading="loading" @click="handleGenerate">
+          Generate Links
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+
+    <!-- Step 3: Show generated links -->
+    <v-card v-else-if="step === 3" variant="outlined">
+      <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+        Registration Links Generated
+      </v-card-title>
+      <v-card-text>
+        <v-alert type="success" variant="tonal" density="compact" class="mb-4">
+          Copy each link and send it to the corresponding student via email.
+          Links expire in 30 days.
+        </v-alert>
+
+        <div v-for="item in links" :key="item.email" class="mb-4">
+          <div class="text-caption text-medium-emphasis mb-1">{{ item.email }}</div>
+          <div class="d-flex align-center" style="gap: 8px;">
+            <v-text-field
+              :model-value="item.link"
+              variant="outlined"
+              density="compact"
+              readonly
+              hide-details
+              class="flex-grow-1"
+            />
+            <v-btn
+              icon
               size="small"
-              class="mr-1 mb-1"
-            >{{ email }}</v-chip>
+              variant="tonal"
+              @click="copyLink(item.link)"
+            >
+              <v-icon>mdi-content-copy</v-icon>
+            </v-btn>
           </div>
+        </div>
+      </v-card-text>
+      <v-card-actions class="pa-4 pt-0">
+        <v-btn variant="text" @click="reset">Generate More Links</v-btn>
+        <v-spacer />
+        <v-btn color="primary" @click="router.push({ name: 'section-detail', params: { id: sectionId } })">Done</v-btn>
+      </v-card-actions>
+    </v-card>
 
-          <div class="text-caption text-medium-emphasis mb-1">Email Message</div>
-          <v-sheet
-            rounded="lg"
-            border
-            class="pa-4 text-body-2"
-            style="white-space: pre-wrap; font-family: monospace; background: #f8f9fa;"
-          >
-            <div class="mb-1"><strong>Subject:</strong> {{ preview.subject }}</div>
-            <v-divider class="my-2" />
-            {{ preview.body }}
-          </v-sheet>
-        </v-card-text>
-        <v-card-actions class="pa-4 pt-0">
-          <v-btn variant="text" @click="step = 1">Modify Details</v-btn>
-          <v-spacer />
-          <v-btn color="primary" :loading="loading" @click="handleSend">
-            Send Invitations
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </template>
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="2000">
+      {{ snackbar.message }}
+    </v-snackbar>
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useNotifyStore } from '@/stores/notify'
-import { previewInvites, sendInvites } from '../services/inviteService'
-import type { InvitePreview } from '../services/inviteService'
+import { previewInvites, generateInviteLinks } from '../services/inviteService'
+import type { InvitePreview, InviteLink } from '../services/inviteService'
 
 const route = useRoute()
 const router = useRouter()
-const notifyStore = useNotifyStore()
 
 const sectionId = computed(() => Number(route.params.id))
 
-const step = ref<1 | 2>(1)
+const step = ref<1 | 2 | 3>(1)
 const emailsInput = ref('')
 const preview = ref<InvitePreview | null>(null)
+const links = ref<InviteLink[]>([])
 const loading = ref(false)
 const inputError = ref('')
+const snackbar = ref({ show: false, message: '', color: 'success' })
 
 async function handlePreview() {
   if (!emailsInput.value.trim()) {
@@ -122,21 +154,33 @@ async function handlePreview() {
   }
 }
 
-async function handleSend() {
+async function handleGenerate() {
   if (!preview.value) return
   loading.value = true
   try {
-    const res = await sendInvites(sectionId.value, preview.value.emails) as any
+    const res = await generateInviteLinks(sectionId.value, preview.value.emails) as any
     if (res.flag) {
-      notifyStore.success(`${res.data.sentCount} invitation(s) sent successfully.`)
-      router.push({ name: 'section-detail', params: { id: sectionId.value } })
+      links.value = res.data.links
+      step.value = 3
     } else {
-      notifyStore.error(res.message)
+      snackbar.value = { show: true, message: res.message, color: 'error' }
     }
   } catch {
-    notifyStore.error('Failed to send invitations. Please try again.')
+    snackbar.value = { show: true, message: 'Failed to generate links. Please try again.', color: 'error' }
   } finally {
     loading.value = false
   }
+}
+
+async function copyLink(link: string) {
+  await navigator.clipboard.writeText(link)
+  snackbar.value = { show: true, message: 'Link copied!', color: 'success' }
+}
+
+function reset() {
+  step.value = 1
+  emailsInput.value = ''
+  preview.value = null
+  links.value = []
 }
 </script>
